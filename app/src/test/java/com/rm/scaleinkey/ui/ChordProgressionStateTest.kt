@@ -3,6 +3,7 @@ package com.rm.scaleinkey.ui
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import com.rm.scaleinkey.music.ChordVoicing
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -23,18 +24,31 @@ class ChordProgressionStateTest {
     @Test
     fun `append assigns distinct ids even for repeated degrees`() {
         val state = newState()
-        state.append(0)
-        state.append(0)
-        state.append(3)
+        state.append(0, ChordVoicing.TRIAD)
+        state.append(0, ChordVoicing.TRIAD)
+        state.append(3, ChordVoicing.TRIAD)
 
         assertEquals(listOf(0, 0, 3), state.slots.map { it.degree })
         assertEquals(3, state.slots.map { it.id }.distinct().size)
     }
 
     @Test
+    fun `append captures the voicing at that moment, unaffected by later appends of the same degree`() {
+        val state = newState()
+        state.append(1, ChordVoicing.TRIAD)
+        state.append(1, ChordVoicing.SEVENTH)
+        state.append(1, ChordVoicing.TRIAD)
+
+        assertEquals(
+            listOf(ChordVoicing.TRIAD, ChordVoicing.SEVENTH, ChordVoicing.TRIAD),
+            state.slots.map { it.voicing },
+        )
+    }
+
+    @Test
     fun `move reorders adjacent and non-adjacent slots`() {
         val state = newState()
-        listOf(0, 1, 2, 3).forEach { state.append(it) }
+        listOf(0, 1, 2, 3).forEach { state.append(it, ChordVoicing.TRIAD) }
         val ids = state.slots.map { it.id }
 
         state.move(1, 2) // adjacent swap: degrees 0,1,2,3 -> 0,2,1,3
@@ -50,7 +64,7 @@ class ChordProgressionStateTest {
     @Test
     fun `move is a no-op for out-of-range indices`() {
         val state = newState()
-        listOf(0, 1).forEach { state.append(it) }
+        listOf(0, 1).forEach { state.append(it, ChordVoicing.TRIAD) }
 
         state.move(-1, 1)
         state.move(0, 5)
@@ -62,8 +76,8 @@ class ChordProgressionStateTest {
     @Test
     fun `remove deletes exactly the matching id, even with duplicate degrees`() {
         val state = newState()
-        state.append(2)
-        state.append(2)
+        state.append(2, ChordVoicing.TRIAD)
+        state.append(2, ChordVoicing.TRIAD)
         val secondId = state.slots[1].id
 
         state.remove(secondId)
@@ -75,7 +89,7 @@ class ChordProgressionStateTest {
     @Test
     fun `remove stops playback once the sequence becomes empty`() {
         val state = newState()
-        state.append(0)
+        state.append(0, ChordVoicing.TRIAD)
         state.play()
         assertTrue(state.isPlaying)
 

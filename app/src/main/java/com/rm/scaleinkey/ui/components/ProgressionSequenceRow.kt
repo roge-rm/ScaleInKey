@@ -69,7 +69,6 @@ private val CHIP_SPACING = 8.dp
 fun ProgressionSequenceRow(
     slots: List<ProgressionSlot>,
     chordFor: (Int) -> DiatonicChord?,
-    voicingFor: (Int) -> ChordVoicing,
     currentStepIndex: Int?,
     onRemove: (Long) -> Unit,
     onMove: (Int, Int) -> Unit,
@@ -164,7 +163,7 @@ fun ProgressionSequenceRow(
             ) {
                 SequenceChip(
                     chord = chordFor(slot.degree),
-                    voicing = voicingFor(slot.degree),
+                    voicing = slot.voicing,
                     isCurrentStep = currentStepIndex == index,
                     modifier = Modifier.fillMaxSize(),
                 )
