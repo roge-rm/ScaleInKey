@@ -47,9 +47,13 @@ import com.rm.scaleinkey.music.display
 import com.rm.scaleinkey.ui.ProgressionSlot
 import kotlin.math.abs
 
-private val CHIP_WIDTH = 88.dp
-private val CHIP_HEIGHT = 84.dp
-private val CHIP_SPACING = 10.dp
+// Smaller than ChordRow/ChordPalette's 84dp cards: this row's job is to show as much of the
+// built sequence as possible at a glance rather than to be a comfortable tap target (tap-to-remove
+// and long-press-drag both still work fine at this size), so it trades some size for fitting
+// noticeably more chips in view before the user has to scroll.
+private val CHIP_WIDTH = 64.dp
+private val CHIP_HEIGHT = 64.dp
+private val CHIP_SPACING = 8.dp
 
 /**
  * The built progression, as a horizontally-scrollable row of fixed-size chips (a plain `Row`, not
@@ -215,12 +219,12 @@ private fun SequenceChip(
                     Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), shape)
                 }
             )
-            .padding(horizontal = 6.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(2.dp),
+            .padding(horizontal = 4.dp, vertical = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(1.dp),
     ) {
         Text(
             text = display.romanNumeral,
-            style = MaterialTheme.typography.labelMedium,
+            style = MaterialTheme.typography.labelSmall,
             color = contentColor,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -229,7 +233,7 @@ private fun SequenceChip(
         )
         Text(
             text = display.symbol,
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.SemiBold,
             color = contentColor,
             maxLines = 1,

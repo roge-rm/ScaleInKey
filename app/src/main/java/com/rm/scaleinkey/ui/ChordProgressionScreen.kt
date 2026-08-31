@@ -74,6 +74,7 @@ fun ChordProgressionScreen(
                                 voicingFor = explorerState::voicingFor,
                                 instrument = explorerState.instrument,
                                 onChordAppended = progressionState::append,
+                                onSeventhToggled = explorerState::onSeventhToggled,
                             )
                             ProgressionSequenceRow(
                                 slots = progressionState.slots,
