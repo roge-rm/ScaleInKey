@@ -1,7 +1,18 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
 }
+
+// Release signing credentials live in local.properties (gitignored, machine-local — see that
+// file's own header) rather than here, so the keystore path/passwords never reach version
+// control. Guarded so a checkout without them still builds fine; it just won't sign release.
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+val releaseStoreFile = localProperties.getProperty("scaleinkey.release.storeFile")
 
 android {
     namespace = "com.rm.scaleinkey"
@@ -14,7 +25,7 @@ android {
         minSdk = 34
         targetSdk = 37
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -28,10 +39,23 @@ android {
         }
     }
 
+    signingConfigs {
+        if (releaseStoreFile != null) {
+            create("release") {
+                storeFile = file(releaseStoreFile)
+                storePassword = localProperties.getProperty("scaleinkey.release.storePassword")
+                keyAlias = localProperties.getProperty("scaleinkey.release.keyAlias")
+                keyPassword = localProperties.getProperty("scaleinkey.release.keyPassword")
+            }
+        }
+    }
     buildTypes {
         release {
             optimization {
                 enable = false
+            }
+            if (releaseStoreFile != null) {
+                signingConfig = signingConfigs.getByName("release")
             }
         }
     }
