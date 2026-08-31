@@ -1,0 +1,226 @@
+package com.rm.scaleinkey.ui.components.diagrams
+
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextAlign
+import com.rm.scaleinkey.music.CANONICAL_ROOTS
+import com.rm.scaleinkey.music.Note
+import com.rm.scaleinkey.music.StringInstrumentTuning
+import com.rm.scaleinkey.music.fretPitchClass
+import com.rm.scaleinkey.ui.theme.scaleColors
+import kotlin.math.roundToInt
+
+private val MARKER_FRETS = setOf(3, 5, 7, 9)
+private const val DOUBLE_MARKER_FRET = 12
+
+// Fretboard padding, expressed as a fraction of the canvas size. Shared between drawing and
+// tap hit-testing so the two geometries can never drift apart.
+private const val LEFT_PAD_FRACTION = 0.07f
+private const val RIGHT_PAD_FRACTION = 0.02f
+private const val TOP_PAD_FRACTION = 0.06f
+private const val BOTTOM_PAD_FRACTION = 0.16f
+
+@Composable
+fun FrettedInstrumentDiagram(
+    tuning: StringInstrumentTuning,
+    rootPitchClass: Int,
+    highlightedNotes: List<Note>,
+    isChordSelection: Boolean,
+    onFretTapped: (stringIndex: Int, fret: Int) -> Unit = { _, _ -> },
+    modifier: Modifier = Modifier,
+) {
+    val palette = MaterialTheme.scaleColors
+    val stringColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val fretColor = MaterialTheme.colorScheme.outline
+    val nutColor = MaterialTheme.colorScheme.onSurface
+    val labelTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val markerColor = MaterialTheme.colorScheme.outlineVariant
+
+    val labelByPitchClass = remember(highlightedNotes) {
+        highlightedNotes.associateBy { it.pitchClass }
+    }
+    val stringLabels = remember(tuning) {
+        tuning.openStringPitchClasses.map { CANONICAL_ROOTS[it].displayName() }
+    }
+    val textMeasurer = rememberTextMeasurer()
+
+    val numStrings = tuning.openStringMidiNotes.size
+    val numFrets = tuning.fretCount
+
+    Canvas(
+        modifier = modifier
+            .fillMaxWidth()
+            .aspectRatio(numFrets / (numStrings.toFloat() * 1.15f))
+            .pointerInput(tuning) {
+                detectTapGestures { offset ->
+                    hitTestFret(offset.x, offset.y, size.width.toFloat(), size.height.toFloat(), numStrings, numFrets)
+                        ?.let { (stringIndex, fret) -> onFretTapped(stringIndex, fret) }
+                }
+            }
+    ) {
+        val leftPad = size.width * LEFT_PAD_FRACTION
+        val rightPad = size.width * RIGHT_PAD_FRACTION
+        val topPad = size.height * TOP_PAD_FRACTION
+        val bottomPad = size.height * BOTTOM_PAD_FRACTION
+
+        val fretboardWidth = size.width - leftPad - rightPad
+        val fretboardHeight = size.height - topPad - bottomPad
+
+        val positionSpacing = fretboardWidth / numFrets
+        fun positionX(fret: Int) = leftPad + fret * positionSpacing
+
+        val stringSpacing = if (numStrings > 1) fretboardHeight / (numStrings - 1) else 0f
+        fun stringY(stringIndex: Int) = topPad + stringIndex * stringSpacing
+
+        val markerRadius = minOf(positionSpacing, stringSpacing) * 0.34f
+
+        fun drawCenteredText(text: String, center: Offset, fontSizePx: Float, color: Color, bold: Boolean = false) {
+            val style = TextStyle(
+                color = color,
+                fontSize = fontSizePx.toSp(),
+                fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal,
+                textAlign = TextAlign.Center,
+            )
+            val layout = textMeasurer.measure(text, style)
+            drawText(
+                textMeasurer = textMeasurer,
+                text = text,
+                topLeft = Offset(center.x - layout.size.width / 2f, center.y - layout.size.height / 2f),
+                style = style,
+            )
+        }
+
+        // Fretboard position markers (real fretboard inlay dots), drawn behind everything.
+        for (f in 0..numFrets) {
+            if (f == 0) continue
+            val midX = positionX(f) - positionSpacing / 2f
+            when {
+                f == DOUBLE_MARKER_FRET -> {
+                    val third = fretboardHeight / 3f
+                    drawCircle(color = markerColor, radius = markerRadius * 0.6f, center = Offset(midX, topPad + third))
+                    drawCircle(color = markerColor, radius = markerRadius * 0.6f, center = Offset(midX, topPad + 2 * third))
+                }
+                f in MARKER_FRETS -> {
+                    drawCircle(
+                        color = markerColor,
+                        radius = markerRadius * 0.6f,
+                        center = Offset(midX, topPad + fretboardHeight / 2f),
+                    )
+                }
+            }
+        }
+
+        // Strings.
+        for (s in 0 until numStrings) {
+            val y = stringY(s)
+            drawLine(
+                color = stringColor,
+                start = Offset(leftPad, y),
+                end = Offset(size.width - rightPad, y),
+                strokeWidth = 2.5f,
+            )
+            drawCenteredText(
+                text = stringLabels[s],
+                center = Offset(leftPad * 0.4f, y),
+                fontSizePx = stringSpacing.coerceAtMost(fretboardHeight) * 0.32f,
+                color = labelTextColor,
+                bold = true,
+            )
+        }
+
+        // Frets (position 0 is the nut).
+        for (f in 0..numFrets) {
+            val x = positionX(f)
+            drawLine(
+                color = if (f == 0) nutColor else fretColor,
+                start = Offset(x, topPad),
+                end = Offset(x, topPad + fretboardHeight),
+                strokeWidth = if (f == 0) 6f else 2f,
+            )
+        }
+
+        // Fret number guide row.
+        val fretLabelY = topPad + fretboardHeight + bottomPad * 0.55f
+        val fretLabelFontSize = bottomPad * 0.32f
+        for (f in 0..numFrets) {
+            val x = if (f == 0) positionX(f) else positionX(f) - positionSpacing / 2f
+            val isMarkerFret = f == DOUBLE_MARKER_FRET || f in MARKER_FRETS
+            drawCenteredText(
+                text = f.toString(),
+                center = Offset(x, fretLabelY),
+                fontSizePx = fretLabelFontSize,
+                color = if (isMarkerFret) nutColor else labelTextColor,
+                bold = isMarkerFret,
+            )
+        }
+
+        fun colorFor(pitchClass: Int): Color? = when {
+            pitchClass !in labelByPitchClass -> null
+            pitchClass == rootPitchClass -> palette.root
+            isChordSelection -> palette.chordTone
+            else -> palette.scaleTone
+        }
+
+        for (s in 0 until numStrings) {
+            for (f in 0..numFrets) {
+                val pitchClass = fretPitchClass(tuning, s, f)
+                val color = colorFor(pitchClass) ?: continue
+                val x = if (f == 0) positionX(f) + markerRadius * 1.5f else positionX(f) - positionSpacing / 2f
+                val center = Offset(x, stringY(s))
+                drawCircle(color = color, radius = markerRadius, center = center)
+                labelByPitchClass[pitchClass]?.let { note ->
+                    drawCenteredText(
+                        text = note.displayName(),
+                        center = center,
+                        fontSizePx = markerRadius * 0.95f,
+                        color = palette.onHighlight,
+                        bold = true,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** Mirrors the draw geometry above using the same padding fractions. */
+private fun hitTestFret(
+    x: Float,
+    y: Float,
+    width: Float,
+    height: Float,
+    numStrings: Int,
+    numFrets: Int,
+): Pair<Int, Int>? {
+    val leftPad = width * LEFT_PAD_FRACTION
+    val rightPad = width * RIGHT_PAD_FRACTION
+    val topPad = height * TOP_PAD_FRACTION
+    val bottomPad = height * BOTTOM_PAD_FRACTION
+
+    val fretboardWidth = width - leftPad - rightPad
+    val fretboardHeight = height - topPad - bottomPad
+    if (fretboardWidth <= 0f || fretboardHeight <= 0f) return null
+
+    val positionSpacing = fretboardWidth / numFrets
+    val stringSpacing = if (numStrings > 1) fretboardHeight / (numStrings - 1) else 0f
+
+    val stringIndex = if (numStrings > 1) {
+        ((y - topPad) / stringSpacing).roundToInt().coerceIn(0, numStrings - 1)
+    } else {
+        0
+    }
+    val fret = ((x - leftPad) / positionSpacing).roundToInt().coerceIn(0, numFrets)
+    return stringIndex to fret
+}

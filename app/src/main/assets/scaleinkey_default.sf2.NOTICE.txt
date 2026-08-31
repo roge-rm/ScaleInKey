@@ -1,0 +1,17 @@
+scaleinkey_default.sf2
+
+Derived from "FluidR3 GM" by Frank Wen (MIT License), trimmed to just the
+Acoustic Grand Piano, Nylon String Guitar, and Acoustic Bass presets/samples
+(the timbres ScaleInKey needs for its Piano/Guitar/Ukulele/Bass diagrams —
+Ukulele reuses the Nylon String Guitar patch, since General MIDI has no
+dedicated ukulele instrument). All other instruments, drum kits, and
+metadata from the original 151MB soundfont were removed to keep the app's
+bundled asset small; sample audio data, generators, and envelopes for the
+kept presets are otherwise unmodified (stereo left/right sample links were
+flattened to independent mono samples for simplicity).
+
+Original soundfont: https://member.keymusician.com/Member/FluidR3_GM/
+License: MIT. Full original license text:
+https://member.keymusician.com/Member/FluidR3_GM/README.html
+
+Copyright (c) Frank Wen. Used and redistributed under the MIT License.
