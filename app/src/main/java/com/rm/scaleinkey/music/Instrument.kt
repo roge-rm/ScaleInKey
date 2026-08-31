@@ -34,6 +34,14 @@ fun fretMidiNote(tuning: StringInstrumentTuning, stringIndex: Int, fret: Int): I
 fun fretPitchClass(tuning: StringInstrumentTuning, stringIndex: Int, fret: Int): Int =
     Math.floorMod(fretMidiNote(tuning, stringIndex, fret), 12)
 
+private const val SCALE_BOX_FRET_COUNT = 4
+
+/**
+ * Narrows a tuning to the open-position scale-box window (frets 0-4) for fingering-chart mode.
+ * v1 simplification: always the open position, not a CAGED-style multi-position finder.
+ */
+fun StringInstrumentTuning.scaleBoxWindow(): StringInstrumentTuning = copy(fretCount = SCALE_BOX_FRET_COUNT)
+
 data class PianoKey(
     val pitchClass: Int,
     val isBlack: Boolean,

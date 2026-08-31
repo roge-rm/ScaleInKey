@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -26,11 +27,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.rm.scaleinkey.music.ChordShape
 import com.rm.scaleinkey.music.InstrumentTunings
 import com.rm.scaleinkey.music.InstrumentType
 import com.rm.scaleinkey.music.Note
+import com.rm.scaleinkey.music.StringInstrumentTuning
 import com.rm.scaleinkey.music.fretMidiNote
+import com.rm.scaleinkey.music.scaleBoxWindow
 import com.rm.scaleinkey.ui.LocalSoundEngine
+import com.rm.scaleinkey.ui.components.diagrams.ChordShapeDiagram
+import com.rm.scaleinkey.ui.components.diagrams.FretLabelMode
 import com.rm.scaleinkey.ui.components.diagrams.FrettedInstrumentDiagram
 import com.rm.scaleinkey.ui.components.diagrams.PianoDiagram
 import com.rm.scaleinkey.ui.theme.scaleColors
@@ -46,6 +53,11 @@ fun InstrumentPager(
     rootPitchClass: Int,
     highlightedNotes: List<Note>,
     isChordSelection: Boolean,
+    chartViewEnabled: Boolean,
+    onChartViewChanged: (Boolean) -> Unit,
+    guitarChordShape: ChordShape?,
+    ukuleleChordShape: ChordShape?,
+    bassRootShape: ChordShape?,
     modifier: Modifier = Modifier,
 ) {
     val pagerState = rememberPagerState(
@@ -100,41 +112,129 @@ fun InstrumentPager(
                         isChordSelection = isChordSelection,
                         onKeyTapped = { key -> soundEngine.playNote(InstrumentType.PIANO, key.midiNote) },
                     )
-                    InstrumentType.GUITAR -> FrettedInstrumentDiagram(
+                    InstrumentType.GUITAR -> FrettedOrChartDiagram(
+                        instrument = InstrumentType.GUITAR,
                         tuning = InstrumentTunings.GUITAR,
                         rootPitchClass = rootPitchClass,
                         highlightedNotes = highlightedNotes,
                         isChordSelection = isChordSelection,
-                        onFretTapped = { stringIndex, fret ->
-                            soundEngine.playNote(InstrumentType.GUITAR, fretMidiNote(InstrumentTunings.GUITAR, stringIndex, fret))
-                        },
+                        chartViewEnabled = chartViewEnabled,
+                        chordShape = guitarChordShape,
                     )
-                    InstrumentType.UKULELE -> FrettedInstrumentDiagram(
+                    InstrumentType.UKULELE -> FrettedOrChartDiagram(
+                        instrument = InstrumentType.UKULELE,
                         tuning = InstrumentTunings.UKULELE,
                         rootPitchClass = rootPitchClass,
                         highlightedNotes = highlightedNotes,
                         isChordSelection = isChordSelection,
-                        onFretTapped = { stringIndex, fret ->
-                            soundEngine.playNote(InstrumentType.UKULELE, fretMidiNote(InstrumentTunings.UKULELE, stringIndex, fret))
-                        },
+                        chartViewEnabled = chartViewEnabled,
+                        chordShape = ukuleleChordShape,
                     )
-                    InstrumentType.BASS -> FrettedInstrumentDiagram(
+                    InstrumentType.BASS -> FrettedOrChartDiagram(
+                        instrument = InstrumentType.BASS,
                         tuning = InstrumentTunings.BASS,
                         rootPitchClass = rootPitchClass,
                         highlightedNotes = highlightedNotes,
                         isChordSelection = isChordSelection,
-                        onFretTapped = { stringIndex, fret ->
-                            soundEngine.playNote(InstrumentType.BASS, fretMidiNote(InstrumentTunings.BASS, stringIndex, fret))
-                        },
+                        chartViewEnabled = chartViewEnabled,
+                        chordShape = bassRootShape,
                     )
                 }
             }
-            HighlightLegend(
-                isChordSelection = isChordSelection,
+            // The toggle sits in the same row as the legend, off to the side, rather than
+            // overlapping the diagram canvas above (which draws fret/string content edge-to-edge
+            // in every mode, so any overlay on it ends up covering real content). defaultMinSize
+            // keeps this row's height constant across tabs — including Piano, which has no
+            // toggle — so switching tabs can't shift anything below it.
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .defaultMinSize(minHeight = 32.dp)
                     .padding(bottom = 16.dp),
-            )
+            ) {
+                HighlightLegend(
+                    isChordSelection = isChordSelection,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.Center),
+                )
+                if (TABS[pagerState.currentPage] != InstrumentType.PIANO) {
+                    ChartViewToggleButton(
+                        chartViewEnabled = chartViewEnabled,
+                        onToggle = { onChartViewChanged(!chartViewEnabled) },
+                        modifier = Modifier
+                            .align(Alignment.CenterStart)
+                            .padding(start = 16.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Picks between the three fretted-instrument display modes: a full chord shape / root marker
+ * (chart mode + a chord selected + a shape available), a windowed scale-position box (chart mode,
+ * otherwise), or the original full-neck highlighting (chart mode off).
+ */
+@Composable
+private fun FrettedOrChartDiagram(
+    instrument: InstrumentType,
+    tuning: StringInstrumentTuning,
+    rootPitchClass: Int,
+    highlightedNotes: List<Note>,
+    isChordSelection: Boolean,
+    chartViewEnabled: Boolean,
+    chordShape: ChordShape?,
+) {
+    val soundEngine = LocalSoundEngine.current
+    when {
+        chartViewEnabled && isChordSelection && chordShape != null -> ChordShapeDiagram(
+            shape = chordShape,
+            onFretTapped = { stringIndex, fret ->
+                soundEngine.playNote(instrument, fretMidiNote(tuning, stringIndex, fret))
+            },
+        )
+        chartViewEnabled -> FrettedInstrumentDiagram(
+            tuning = tuning.scaleBoxWindow(),
+            rootPitchClass = rootPitchClass,
+            highlightedNotes = highlightedNotes,
+            isChordSelection = isChordSelection,
+            labelMode = FretLabelMode.FINGER_NUMBER,
+            onFretTapped = { stringIndex, fret ->
+                soundEngine.playNote(instrument, fretMidiNote(tuning, stringIndex, fret))
+            },
+        )
+        else -> FrettedInstrumentDiagram(
+            tuning = tuning,
+            rootPitchClass = rootPitchClass,
+            highlightedNotes = highlightedNotes,
+            isChordSelection = isChordSelection,
+            onFretTapped = { stringIndex, fret ->
+                soundEngine.playNote(instrument, fretMidiNote(tuning, stringIndex, fret))
+            },
+        )
+    }
+}
+
+/**
+ * Small inline icon toggle placed beside the legend rather than overlaid on the diagram itself
+ * (which draws content edge-to-edge in every mode, so any overlay on it covers real content) —
+ * shows the *current* mode (🎸 neck, 📋 chart), matching the existing sound-on/off toggle's
+ * convention in ScaleExplorerScreen.kt's SoundControls.
+ */
+@Composable
+private fun ChartViewToggleButton(chartViewEnabled: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier) {
+    Surface(
+        onClick = onToggle,
+        modifier = modifier.size(32.dp),
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+        tonalElevation = 3.dp,
+        shadowElevation = 3.dp,
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(if (chartViewEnabled) "📋" else "🎸", fontSize = 14.sp)
         }
     }
 }

@@ -26,6 +26,8 @@ import kotlin.math.roundToInt
 private val MARKER_FRETS = setOf(3, 5, 7, 9)
 private const val DOUBLE_MARKER_FRET = 12
 
+enum class FretLabelMode { NOTE_NAME, FINGER_NUMBER }
+
 // Fretboard padding, expressed as a fraction of the canvas size. Shared between drawing and
 // tap hit-testing so the two geometries can never drift apart.
 private const val LEFT_PAD_FRACTION = 0.07f
@@ -39,6 +41,7 @@ fun FrettedInstrumentDiagram(
     rootPitchClass: Int,
     highlightedNotes: List<Note>,
     isChordSelection: Boolean,
+    labelMode: FretLabelMode = FretLabelMode.NOTE_NAME,
     onFretTapped: (stringIndex: Int, fret: Int) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier,
 ) {
@@ -181,9 +184,13 @@ fun FrettedInstrumentDiagram(
                 val x = if (f == 0) positionX(f) + markerRadius * 1.5f else positionX(f) - positionSpacing / 2f
                 val center = Offset(x, stringY(s))
                 drawCircle(color = color, radius = markerRadius, center = center)
-                labelByPitchClass[pitchClass]?.let { note ->
+                val labelText = when (labelMode) {
+                    FretLabelMode.NOTE_NAME -> labelByPitchClass[pitchClass]?.displayName()
+                    FretLabelMode.FINGER_NUMBER -> if (f == 0) null else f.toString()
+                }
+                labelText?.let { text ->
                     drawCenteredText(
-                        text = note.displayName(),
+                        text = text,
                         center = center,
                         fontSizePx = markerRadius * 0.95f,
                         color = palette.onHighlight,
