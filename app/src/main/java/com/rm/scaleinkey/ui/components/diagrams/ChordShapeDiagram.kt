@@ -6,6 +6,10 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -49,29 +53,32 @@ fun ChordShapeDiagram(
     val fretColor = MaterialTheme.colorScheme.outline
     val nutColor = MaterialTheme.colorScheme.onSurface
     val labelTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val pressedColor = MaterialTheme.colorScheme.primary
     val textMeasurer = rememberTextMeasurer()
 
     val numStrings = shape.marks.size
+
+    // Only a fretted or open string (fret != null) is actually tappable — a muted string has
+    // nothing to preview — but track the column regardless so the draw code can decide.
+    var pressedStringIndex by remember { mutableStateOf<Int?>(null) }
 
     Canvas(
         modifier = modifier
             .fillMaxWidth()
             .aspectRatio(REFERENCE_STRINGS / (FRET_ROWS.toFloat() * 1.35f))
             .pointerInput(shape) {
-                detectTapGestures { offset ->
-                    val leftPad = size.width * LEFT_PAD_FRACTION
-                    val rightPad = size.width * RIGHT_PAD_FRACTION
-                    val gridWidth = size.width - leftPad - rightPad
-                    if (gridWidth <= 0f) return@detectTapGestures
-                    val referenceSpacing = gridWidth / (REFERENCE_STRINGS - 1)
-                    val gridLeftOffset = (gridWidth - referenceSpacing * (numStrings - 1)) / 2f
-                    val stringIndex = if (numStrings > 1) {
-                        ((offset.x - leftPad - gridLeftOffset) / referenceSpacing).roundToInt().coerceIn(0, numStrings - 1)
-                    } else {
-                        0
-                    }
-                    shape.marks[stringIndex].fret?.let { fret -> onFretTapped(stringIndex, fret) }
-                }
+                detectTapGestures(
+                    onPress = { offset ->
+                        pressedStringIndex = hitTestChordShapeString(offset.x, size.width.toFloat(), numStrings)
+                        tryAwaitRelease()
+                        pressedStringIndex = null
+                    },
+                    onTap = { offset ->
+                        hitTestChordShapeString(offset.x, size.width.toFloat(), numStrings)?.let { stringIndex ->
+                            shape.marks[stringIndex].fret?.let { fret -> onFretTapped(stringIndex, fret) }
+                        }
+                    },
+                )
             },
     ) {
         val leftPad = size.width * LEFT_PAD_FRACTION
@@ -192,5 +199,39 @@ fun ChordShapeDiagram(
                 )
             }
         }
+
+        // Press feedback, drawn last so it overrides the resting color at that string while
+        // held. Muted strings aren't tappable, so they get none.
+        pressedStringIndex?.let { s ->
+            val fret = shape.marks[s].fret ?: return@let
+            val center = if (fret == 0) {
+                Offset(stringX(s), markerY)
+            } else {
+                val row = fret - shape.startFret
+                Offset(stringX(s), rowY(row) - rowSpacing / 2f)
+            }
+            drawCircle(color = pressedColor, radius = dotRadius, center = center)
+            shape.marks[s].finger?.let { finger ->
+                drawCenteredText(
+                    text = finger.toString(),
+                    center = center,
+                    fontSizePx = dotRadius * 0.95f,
+                    color = palette.onHighlight,
+                    bold = true,
+                )
+            }
+        }
     }
+}
+
+/** Mirrors the string-spacing geometry above. Null only when the canvas has no real width yet. */
+private fun hitTestChordShapeString(x: Float, width: Float, numStrings: Int): Int? {
+    val leftPad = width * LEFT_PAD_FRACTION
+    val rightPad = width * RIGHT_PAD_FRACTION
+    val gridWidth = width - leftPad - rightPad
+    if (gridWidth <= 0f) return null
+    if (numStrings <= 1) return 0
+    val referenceSpacing = gridWidth / (REFERENCE_STRINGS - 1)
+    val gridLeftOffset = (gridWidth - referenceSpacing * (numStrings - 1)) / 2f
+    return ((x - leftPad - gridLeftOffset) / referenceSpacing).roundToInt().coerceIn(0, numStrings - 1)
 }

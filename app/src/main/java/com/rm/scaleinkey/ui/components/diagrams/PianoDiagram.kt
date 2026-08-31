@@ -6,7 +6,10 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -43,23 +46,40 @@ fun PianoDiagram(
     val outlineColor = MaterialTheme.colorScheme.outline
     val whiteKeyColor = MaterialTheme.colorScheme.surface
     val blackKeyColor = MaterialTheme.colorScheme.onSurface
+    val pressedColor = MaterialTheme.colorScheme.primary
+
+    // Which key (by its unique keyIndex, not pitch class — the same pitch class can appear in
+    // both octaves) is currently held down, so it can flash a distinct color for feedback even
+    // when it isn't part of the current highlight (previously an unhighlighted key tap drew
+    // nothing at all, giving no visual confirmation of where the tap landed).
+    var pressedKeyIndex by remember { mutableStateOf<Int?>(null) }
 
     Canvas(
         modifier = modifier
             .fillMaxWidth()
             .aspectRatio(whiteKeyCount / 4f)
             .pointerInput(keys) {
-                detectTapGestures { offset ->
-                    hitTestPianoKey(offset.x, offset.y, size.width.toFloat(), size.height.toFloat(), keys, whiteKeyCount)
-                        ?.let(onKeyTapped)
-                }
+                detectTapGestures(
+                    onPress = { offset ->
+                        pressedKeyIndex = hitTestPianoKey(
+                            offset.x, offset.y, size.width.toFloat(), size.height.toFloat(), keys, whiteKeyCount,
+                        )?.keyIndex
+                        tryAwaitRelease()
+                        pressedKeyIndex = null
+                    },
+                    onTap = { offset ->
+                        hitTestPianoKey(offset.x, offset.y, size.width.toFloat(), size.height.toFloat(), keys, whiteKeyCount)
+                            ?.let(onKeyTapped)
+                    },
+                )
             }
     ) {
         val whiteKeyWidth = size.width / whiteKeyCount
         val blackKeyWidth = whiteKeyWidth * 0.6f
         val blackKeyHeight = size.height * 0.6f
 
-        fun colorFor(pitchClass: Int): Color? = when {
+        fun colorFor(pitchClass: Int, isPressed: Boolean): Color? = when {
+            isPressed -> pressedColor
             pitchClass !in labelByPitchClass -> null
             pitchClass == rootPitchClass -> palette.root
             isChordSelection -> palette.chordTone
@@ -97,7 +117,7 @@ fun PianoDiagram(
                 size = Size(whiteKeyWidth, size.height),
                 style = Stroke(width = 1.5f),
             )
-            colorFor(key.pitchClass)?.let { color ->
+            colorFor(key.pitchClass, key.keyIndex == pressedKeyIndex)?.let { color ->
                 val center = Offset(x + whiteKeyWidth / 2f, size.height * 0.82f)
                 val radius = whiteKeyWidth * 0.34f
                 drawCircle(color = color, radius = radius, center = center)
@@ -119,7 +139,7 @@ fun PianoDiagram(
                 topLeft = Offset(x, 0f),
                 size = Size(blackKeyWidth, blackKeyHeight),
             )
-            colorFor(key.pitchClass)?.let { color ->
+            colorFor(key.pitchClass, key.keyIndex == pressedKeyIndex)?.let { color ->
                 val center = Offset(x + blackKeyWidth / 2f, blackKeyHeight * 0.72f)
                 val radius = blackKeyWidth * 0.34f
                 drawCircle(color = color, radius = radius, center = center)
