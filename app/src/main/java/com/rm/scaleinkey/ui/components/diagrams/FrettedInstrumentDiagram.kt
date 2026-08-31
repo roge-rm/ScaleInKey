@@ -6,7 +6,10 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -51,6 +54,7 @@ fun FrettedInstrumentDiagram(
     val nutColor = MaterialTheme.colorScheme.onSurface
     val labelTextColor = MaterialTheme.colorScheme.onSurfaceVariant
     val markerColor = MaterialTheme.colorScheme.outlineVariant
+    val pressedColor = MaterialTheme.colorScheme.primary
 
     val labelByPitchClass = remember(highlightedNotes) {
         highlightedNotes.associateBy { it.pitchClass }
@@ -63,15 +67,27 @@ fun FrettedInstrumentDiagram(
     val numStrings = tuning.openStringMidiNotes.size
     val numFrets = tuning.fretCount
 
+    // hitTestFret always resolves to *some* cell (coerced into range), so the pressed cell can
+    // be one with no highlight at all — still worth flashing, since that's exactly the case that
+    // previously drew nothing and gave no confirmation of where the tap landed.
+    var pressedCell by remember { mutableStateOf<Pair<Int, Int>?>(null) }
+
     Canvas(
         modifier = modifier
             .fillMaxWidth()
             .aspectRatio(numFrets / (numStrings.toFloat() * 1.15f))
             .pointerInput(tuning) {
-                detectTapGestures { offset ->
-                    hitTestFret(offset.x, offset.y, size.width.toFloat(), size.height.toFloat(), numStrings, numFrets)
-                        ?.let { (stringIndex, fret) -> onFretTapped(stringIndex, fret) }
-                }
+                detectTapGestures(
+                    onPress = { offset ->
+                        pressedCell = hitTestFret(offset.x, offset.y, size.width.toFloat(), size.height.toFloat(), numStrings, numFrets)
+                        tryAwaitRelease()
+                        pressedCell = null
+                    },
+                    onTap = { offset ->
+                        hitTestFret(offset.x, offset.y, size.width.toFloat(), size.height.toFloat(), numStrings, numFrets)
+                            ?.let { (stringIndex, fret) -> onFretTapped(stringIndex, fret) }
+                    },
+                )
             }
     ) {
         val leftPad = size.width * LEFT_PAD_FRACTION
@@ -197,6 +213,28 @@ fun FrettedInstrumentDiagram(
                         bold = true,
                     )
                 }
+            }
+        }
+
+        // Press feedback, drawn last so it overrides whatever (if anything) was drawn at this
+        // cell above — flashes even on an unhighlighted fret, so every tap gets a visible response.
+        pressedCell?.let { (s, f) ->
+            val x = if (f == 0) positionX(f) + markerRadius * 1.5f else positionX(f) - positionSpacing / 2f
+            val center = Offset(x, stringY(s))
+            drawCircle(color = pressedColor, radius = markerRadius, center = center)
+            val pressedPitchClass = fretPitchClass(tuning, s, f)
+            val labelText = when (labelMode) {
+                FretLabelMode.NOTE_NAME -> labelByPitchClass[pressedPitchClass]?.displayName()
+                FretLabelMode.FINGER_NUMBER -> if (f == 0) null else f.toString()
+            }
+            labelText?.let { text ->
+                drawCenteredText(
+                    text = text,
+                    center = center,
+                    fontSizePx = markerRadius * 0.95f,
+                    color = palette.onHighlight,
+                    bold = true,
+                )
             }
         }
     }
