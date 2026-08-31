@@ -183,9 +183,13 @@ private fun ChordCard(
     }
 }
 
-/** Purely a visual indicator of the card's current voicing — see the long-press comment above. */
+/**
+ * Purely a visual indicator of a chord card's current voicing — see the long-press comment above.
+ * Not `private`: [com.rm.scaleinkey.ui.components.ChordPalette] reuses it verbatim for the same
+ * long-press-to-toggle-7th affordance on the progression screen's chord palette.
+ */
 @Composable
-private fun SeventhChip(
+fun SeventhChip(
     active: Boolean,
     contentColor: Color,
     modifier: Modifier = Modifier,

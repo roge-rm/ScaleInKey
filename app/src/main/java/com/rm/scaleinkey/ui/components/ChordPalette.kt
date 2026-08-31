@@ -1,11 +1,11 @@
 package com.rm.scaleinkey.ui.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,7 +24,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.rm.scaleinkey.music.ChordVoicing
 import com.rm.scaleinkey.music.DiatonicChord
 import com.rm.scaleinkey.music.InstrumentType
@@ -36,10 +35,12 @@ private const val CHORDS_PER_ROW = 4
 
 /**
  * The chord "source" for a progression: the same fixed-width chord-card grid as [ChordRow], but
- * every tap appends to the sequence instead of selecting/deselecting — there's no persistent
- * "selected" concept here, and no long-press, since triad/7th voicing is read from [voicingFor]
- * (the same shared per-degree choice [ChordRow] already toggles on the Explore screen) rather than
- * duplicating that toggle on this screen too.
+ * every tap appends to the sequence instead of selecting/deselecting. Triad/7th voicing is read
+ * from [voicingFor] — the same shared per-degree choice [ChordRow] toggles on the Explore screen —
+ * and long-press here toggles that same shared state via [onSeventhToggled], so a 7th chord can be
+ * queued up without leaving this screen. Because the choice is shared per degree (not captured per
+ * queued slot), toggling a degree's voicing here also changes how any already-queued occurrence of
+ * that degree displays and plays back.
  */
 @Composable
 fun ChordPalette(
@@ -47,6 +48,7 @@ fun ChordPalette(
     voicingFor: (Int) -> ChordVoicing,
     instrument: InstrumentType,
     onChordAppended: (Int) -> Unit,
+    onSeventhToggled: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val soundEngine = LocalSoundEngine.current
@@ -74,6 +76,13 @@ fun ChordPalette(
                                 val midiNotes = previewMidiNotes(instrument, display.orderedTones.map { it.pitchClass })
                                 soundEngine.playChord(instrument, midiNotes)
                             },
+                            onSeventhToggled = {
+                                onSeventhToggled(chord.degree)
+                                val newVoicing = if (voicing == ChordVoicing.SEVENTH) ChordVoicing.TRIAD else ChordVoicing.SEVENTH
+                                val display = chord.display(newVoicing)
+                                val midiNotes = previewMidiNotes(instrument, display.orderedTones.map { it.pitchClass })
+                                soundEngine.playChord(instrument, midiNotes)
+                            },
                             modifier = Modifier.width(cardWidth),
                         )
                     }
@@ -83,11 +92,13 @@ fun ChordPalette(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun PaletteChordCard(
     chord: DiatonicChord,
     voicing: ChordVoicing,
     onTapped: () -> Unit,
+    onSeventhToggled: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val contentColor = MaterialTheme.colorScheme.onSurface
@@ -99,7 +110,9 @@ private fun PaletteChordCard(
             .clip(shape)
             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), shape)
-            .clickable(onClick = onTapped)
+            // Same long-press-toggles-7th / plain-tap-acts convention as ChordRow's ChordCard —
+            // see its comment for why the "7th" indicator below has no hitbox of its own.
+            .combinedClickable(onClick = onTapped, onLongClick = onSeventhToggled)
             .padding(horizontal = 8.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
@@ -122,22 +135,12 @@ private fun PaletteChordCard(
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth(),
         )
-        Box(
+        SeventhChip(
+            active = voicing == ChordVoicing.SEVENTH,
+            contentColor = contentColor,
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
-                .fillMaxWidth(0.6f)
-                .height(18.dp)
-                .clip(RoundedCornerShape(6.dp))
-                .background(contentColor.copy(alpha = if (voicing == ChordVoicing.SEVENTH) 0.35f else 0.08f)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = "tap to add",
-                fontSize = 9.sp,
-                color = contentColor,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
+                .fillMaxWidth(0.6f),
+        )
     }
 }
