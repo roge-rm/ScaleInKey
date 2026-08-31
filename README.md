@@ -1,9 +1,6 @@
 # ScaleInKey
 
-A Jetpack Compose Android app for exploring scales and chords across Piano, Guitar, Ukulele, and
-Bass — pick a root note and a scale, see the notes and diatonic chords, and view them highlighted
-on an instrument diagram. Tap any note, chord, or fretboard position to hear it played back
-through a real SoundFont synth.
+This is an Android (14 or higher) app to show you the notes and chords in a given mode or scale. The app store is full of paid or ad-filled apps that do this (and more! or less!) so I decided to test claude out and release something for free. Cheers.
 
 <img src="docs/screenshot-main.png" alt="ScaleInKey main screen: C Ionian scale with diatonic chords and the piano diagram" width="360" />
 
