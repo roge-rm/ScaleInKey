@@ -12,26 +12,32 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import com.rm.scaleinkey.music.CANONICAL_ROOTS
+import com.rm.scaleinkey.music.ChordShape
 import com.rm.scaleinkey.music.ChordVoicing
 import com.rm.scaleinkey.music.DiatonicChord
+import com.rm.scaleinkey.music.InstrumentTunings
 import com.rm.scaleinkey.music.InstrumentType
 import com.rm.scaleinkey.music.Note
 import com.rm.scaleinkey.music.Scale
 import com.rm.scaleinkey.music.ScaleType
 import com.rm.scaleinkey.music.buildDiatonicChords
 import com.rm.scaleinkey.music.display
+import com.rm.scaleinkey.music.findBassRootPosition
+import com.rm.scaleinkey.music.findChordShape
 
 class ScaleExplorerState(
     rootIndexState: MutableIntState,
     scaleTypeState: MutableState<ScaleType>,
     selectedDegreeState: MutableState<Int?>,
     instrumentState: MutableState<InstrumentType>,
+    chartViewEnabledState: MutableState<Boolean>,
     private val voicingByDegree: SnapshotStateMap<Int, ChordVoicing>,
 ) {
     var rootIndex by rootIndexState
     var scaleType by scaleTypeState
     var selectedDegree by selectedDegreeState
     var instrument by instrumentState
+    var chartViewEnabled by chartViewEnabledState
 
     val root: Note get() = CANONICAL_ROOTS[rootIndex]
     val scale: Scale get() = Scale(root, scaleType)
@@ -46,6 +52,22 @@ class ScaleExplorerState(
     val highlightedNotes: List<Note>
         get() = selectedChord?.let { chord -> chord.display(voicingFor(chord.degree)).orderedTones }
             ?: scale.notes
+
+    // Fingering-chart mode: only meaningful once a chord is selected. Guitar/Ukulele get a full
+    // algorithmic chord shape; Bass gets just a root-note position marker, since bass isn't played
+    // as strummed chords (see ChordFingering.kt).
+    val guitarChordShape: ChordShape?
+        get() = selectedChord?.let { chord ->
+            findChordShape(InstrumentTunings.GUITAR, chord.display(voicingFor(chord.degree)).orderedTones, chord.root.pitchClass)
+        }
+
+    val ukuleleChordShape: ChordShape?
+        get() = selectedChord?.let { chord ->
+            findChordShape(InstrumentTunings.UKULELE, chord.display(voicingFor(chord.degree)).orderedTones, chord.root.pitchClass)
+        }
+
+    val bassRootShape: ChordShape?
+        get() = selectedChord?.let { chord -> findBassRootPosition(InstrumentTunings.BASS, chord.root.pitchClass) }
 
     fun onRootSelected(index: Int) {
         rootIndex = index
@@ -79,9 +101,17 @@ fun rememberScaleExplorerState(): ScaleExplorerState {
     val scaleTypeState = rememberSaveable { mutableStateOf(ScaleType.IONIAN) }
     val selectedDegreeState = rememberSaveable { mutableStateOf<Int?>(null) }
     val instrumentState = rememberSaveable { mutableStateOf(InstrumentType.PIANO) }
+    val chartViewEnabledState = rememberSaveable { mutableStateOf(false) }
     val voicingByDegree = remember { mutableStateMapOf<Int, ChordVoicing>() }
 
     return remember {
-        ScaleExplorerState(rootIndexState, scaleTypeState, selectedDegreeState, instrumentState, voicingByDegree)
+        ScaleExplorerState(
+            rootIndexState,
+            scaleTypeState,
+            selectedDegreeState,
+            instrumentState,
+            chartViewEnabledState,
+            voicingByDegree,
+        )
     }
 }

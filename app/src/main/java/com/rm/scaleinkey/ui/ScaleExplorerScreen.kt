@@ -22,7 +22,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -102,6 +101,11 @@ fun ScaleExplorerScreen(modifier: Modifier = Modifier) {
                                 rootPitchClass = state.root.pitchClass,
                                 highlightedNotes = state.highlightedNotes,
                                 isChordSelection = state.selectedDegree != null,
+                                chartViewEnabled = state.chartViewEnabled,
+                                onChartViewChanged = { state.chartViewEnabled = it },
+                                guitarChordShape = state.guitarChordShape,
+                                ukuleleChordShape = state.ukuleleChordShape,
+                                bassRootShape = state.bassRootShape,
                                 modifier = Modifier.padding(bottom = 96.dp),
                             )
                         }
@@ -146,8 +150,17 @@ private fun SoundControls(soundEngine: SoundEngine, modifier: Modifier = Modifie
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Box {
-            SmallFloatingActionButton(onClick = { menuExpanded = true }) {
-                Text("🎼")
+            Surface(
+                onClick = { menuExpanded = true },
+                modifier = Modifier.size(32.dp),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primaryContainer,
+                tonalElevation = 3.dp,
+                shadowElevation = 3.dp,
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text("🎼", fontSize = 14.sp)
+                }
             }
             DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
                 DropdownMenuItem(
