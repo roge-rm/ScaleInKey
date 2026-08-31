@@ -7,7 +7,6 @@ import android.util.Log
 import com.rm.scaleinkey.music.InstrumentType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -23,7 +22,6 @@ class SoundEngine(private val appContext: Context) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val prefs = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-    private var pendingStopJob: Job? = null
     @Volatile private var loaded = false
 
     @Volatile var enabled: Boolean = prefs.getBoolean(KEY_SOUND_ENABLED, true)
@@ -69,9 +67,13 @@ class SoundEngine(private val appContext: Context) {
         if (!enabled || !loaded) return
         val preset = presetFor(instrument)
         if (!NativeSoundEngine.nativeStart()) return
-        pendingStopJob?.cancel()
         midiNotes.forEach { NativeSoundEngine.nativeNoteOn(preset, it, velocity) }
-        pendingStopJob = scope.launch {
+        // Each trigger gets its own independent release timer — previously a single shared job
+        // was cancelled by every new trigger, so an earlier note/chord's noteOff was silently
+        // dropped whenever a new one started, leaving it stuck sounding forever until enough
+        // stuck notes exhausted the native engine's voice pool and further notes stopped
+        // sounding at all. Overlapping notes/chords are expected and should ring independently.
+        scope.launch {
             delay(previewMs)
             midiNotes.forEach { NativeSoundEngine.nativeNoteOff(preset, it) }
         }

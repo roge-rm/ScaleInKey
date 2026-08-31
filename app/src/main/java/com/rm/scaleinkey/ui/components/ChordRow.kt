@@ -1,9 +1,10 @@
 package com.rm.scaleinkey.ui.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -69,10 +70,15 @@ fun ChordRow(
                         voicing = voicing,
                         selected = chord.degree == selectedDegree,
                         onCardTapped = {
+                            val wasSelected = chord.degree == selectedDegree
                             onChordTapped(chord.degree)
-                            val display = chord.display(voicing)
-                            val midiNotes = assignAscendingMidiNotes(display.orderedTones.map { it.pitchClass })
-                            soundEngine.playChord(instrument, midiNotes)
+                            // Tapping the already-selected chord deselects it — only play when
+                            // this tap is actually selecting a chord, not deselecting one.
+                            if (!wasSelected) {
+                                val display = chord.display(voicing)
+                                val midiNotes = assignAscendingMidiNotes(display.orderedTones.map { it.pitchClass })
+                                soundEngine.playChord(instrument, midiNotes)
+                            }
                         },
                         onSeventhToggled = {
                             onSeventhToggled(chord.degree)
@@ -92,6 +98,7 @@ fun ChordRow(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ChordCard(
     chord: DiatonicChord,
@@ -133,7 +140,11 @@ private fun ChordCard(
                     )
                 }
             )
-            .clickable(onClick = onCardTapped)
+            // Long-press (not a separate small tap target) toggles the 7th voicing — the "7th"
+            // chip below is now purely a visual indicator with no hitbox of its own, since a
+            // small clickable sitting inside this card's larger tap area was too easy to hit by
+            // accident when the user just meant to select the chord.
+            .combinedClickable(onClick = onCardTapped, onLongClick = onSeventhToggled)
             .padding(horizontal = 8.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
@@ -159,7 +170,6 @@ private fun ChordCard(
         SeventhChip(
             active = voicing == ChordVoicing.SEVENTH,
             contentColor = contentColor,
-            onClick = onSeventhToggled,
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
                 .fillMaxWidth(0.6f),
@@ -167,11 +177,11 @@ private fun ChordCard(
     }
 }
 
+/** Purely a visual indicator of the card's current voicing — see the long-press comment above. */
 @Composable
 private fun SeventhChip(
     active: Boolean,
     contentColor: Color,
-    onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val shape = RoundedCornerShape(6.dp)
@@ -180,8 +190,7 @@ private fun SeventhChip(
             .height(18.dp)
             .clip(shape)
             .background(contentColor.copy(alpha = if (active) 0.35f else 0.08f))
-            .border(BorderStroke(1.dp, contentColor.copy(alpha = if (active) 0.7f else 0.25f)), shape)
-            .clickable(onClick = onClick),
+            .border(BorderStroke(1.dp, contentColor.copy(alpha = if (active) 0.7f else 0.25f)), shape),
         contentAlignment = Alignment.Center,
     ) {
         Text(
