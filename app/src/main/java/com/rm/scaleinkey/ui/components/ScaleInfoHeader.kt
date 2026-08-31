@@ -21,7 +21,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.rm.scaleinkey.music.InstrumentType
 import com.rm.scaleinkey.music.Note
-import com.rm.scaleinkey.music.assignAscendingMidiNotes
+import com.rm.scaleinkey.music.previewMidiNotes
 import com.rm.scaleinkey.ui.LocalSoundEngine
 import com.rm.scaleinkey.ui.theme.scaleColors
 
@@ -83,7 +83,7 @@ fun ScaleInfoHeader(
                             shape = RoundedCornerShape(8.dp),
                         )
                         .clickable {
-                            val midiNote = assignAscendingMidiNotes(listOf(note.pitchClass)).first()
+                            val midiNote = previewMidiNotes(instrument, listOf(note.pitchClass)).first()
                             soundEngine.playNote(instrument, midiNote)
                         },
                     contentAlignment = Alignment.Center,

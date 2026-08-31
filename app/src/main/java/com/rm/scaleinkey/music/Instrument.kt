@@ -77,3 +77,24 @@ fun assignAscendingMidiNotes(pitchClasses: List<Int>, baseMidiNote: Int = 60): L
         candidate
     }
 }
+
+// Two octaves below the default preview register (60/C4) — lands Bass previews around C2,
+// close to the real Bass tuning's own open strings (E1..G2, MIDI 28-43), so a tap-to-preview
+// actually sounds bassy instead of sharing the same middle-C-ish register as every other
+// instrument's preview.
+private const val BASS_PREVIEW_BASE_MIDI_NOTE = 36
+
+/**
+ * MIDI notes for a tap-to-preview playback, tailored per instrument. A bassist doesn't strum a
+ * full chord, so Bass previews collapse to just the root pitch class ([pitchClasses]' first
+ * entry — always the chord/scale root by convention at every call site) transposed down into a
+ * real bass register; every other instrument gets the normal ascending voicing near middle C.
+ */
+fun previewMidiNotes(instrument: InstrumentType, pitchClasses: List<Int>): List<Int> {
+    if (pitchClasses.isEmpty()) return emptyList()
+    return if (instrument == InstrumentType.BASS) {
+        assignAscendingMidiNotes(listOf(pitchClasses.first()), baseMidiNote = BASS_PREVIEW_BASE_MIDI_NOTE)
+    } else {
+        assignAscendingMidiNotes(pitchClasses)
+    }
+}

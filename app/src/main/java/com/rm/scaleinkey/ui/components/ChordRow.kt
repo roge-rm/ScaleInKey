@@ -7,12 +7,13 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -30,8 +31,8 @@ import androidx.compose.ui.unit.sp
 import com.rm.scaleinkey.music.ChordVoicing
 import com.rm.scaleinkey.music.DiatonicChord
 import com.rm.scaleinkey.music.InstrumentType
-import com.rm.scaleinkey.music.assignAscendingMidiNotes
 import com.rm.scaleinkey.music.display
+import com.rm.scaleinkey.music.previewMidiNotes
 import com.rm.scaleinkey.ui.LocalSoundEngine
 
 private const val CHORDS_PER_ROW = 4
@@ -47,51 +48,56 @@ fun ChordRow(
     modifier: Modifier = Modifier,
 ) {
     val soundEngine = LocalSoundEngine.current
+    val spacing = 10.dp
     // Fixed CHORDS_PER_ROW-per-row grid (not a wrapping FlowRow): the number of rows
     // — and so this section's total height — stays constant across every root/scale
     // combination, even though chord symbol text length varies a lot (e.g. "G7" vs
     // "F♯m7♭5"). A content-driven wrap would reflow into a different row count and
     // shift the diagram below every time the selection changed.
-    Column(
+    BoxWithConstraints(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        chords.chunked(CHORDS_PER_ROW).forEach { rowChords ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                rowChords.forEach { chord ->
-                    val voicing = voicingFor(chord.degree)
-                    ChordCard(
-                        chord = chord,
-                        voicing = voicing,
-                        selected = chord.degree == selectedDegree,
-                        onCardTapped = {
-                            val wasSelected = chord.degree == selectedDegree
-                            onChordTapped(chord.degree)
-                            // Tapping the already-selected chord deselects it — only play when
-                            // this tap is actually selecting a chord, not deselecting one.
-                            if (!wasSelected) {
-                                val display = chord.display(voicing)
-                                val midiNotes = assignAscendingMidiNotes(display.orderedTones.map { it.pitchClass })
+        // A fixed card width (not Modifier.weight(1f) on each row) keeps every card the same
+        // size whether a row has a full CHORDS_PER_ROW or fewer — 7 chords chunk into 4+3, and
+        // weighting the shorter row's cards to fill the same space would make them visibly
+        // larger than the first row's. Centering (rather than trailing Spacers) then closes the
+        // gap on a short last row without resizing anything.
+        val cardWidth = (maxWidth - spacing * (CHORDS_PER_ROW - 1)) / CHORDS_PER_ROW
+        Column(verticalArrangement = Arrangement.spacedBy(spacing)) {
+            chords.chunked(CHORDS_PER_ROW).forEach { rowChords ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(spacing, alignment = Alignment.CenterHorizontally),
+                ) {
+                    rowChords.forEach { chord ->
+                        val voicing = voicingFor(chord.degree)
+                        ChordCard(
+                            chord = chord,
+                            voicing = voicing,
+                            selected = chord.degree == selectedDegree,
+                            onCardTapped = {
+                                val wasSelected = chord.degree == selectedDegree
+                                onChordTapped(chord.degree)
+                                // Tapping the already-selected chord deselects it — only play
+                                // when this tap is actually selecting a chord, not deselecting.
+                                if (!wasSelected) {
+                                    val display = chord.display(voicing)
+                                    val midiNotes = previewMidiNotes(instrument, display.orderedTones.map { it.pitchClass })
+                                    soundEngine.playChord(instrument, midiNotes)
+                                }
+                            },
+                            onSeventhToggled = {
+                                onSeventhToggled(chord.degree)
+                                val newVoicing = if (voicing == ChordVoicing.SEVENTH) ChordVoicing.TRIAD else ChordVoicing.SEVENTH
+                                val display = chord.display(newVoicing)
+                                val midiNotes = previewMidiNotes(instrument, display.orderedTones.map { it.pitchClass })
                                 soundEngine.playChord(instrument, midiNotes)
-                            }
-                        },
-                        onSeventhToggled = {
-                            onSeventhToggled(chord.degree)
-                            val newVoicing = if (voicing == ChordVoicing.SEVENTH) ChordVoicing.TRIAD else ChordVoicing.SEVENTH
-                            val display = chord.display(newVoicing)
-                            val midiNotes = assignAscendingMidiNotes(display.orderedTones.map { it.pitchClass })
-                            soundEngine.playChord(instrument, midiNotes)
-                        },
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-                repeat(CHORDS_PER_ROW - rowChords.size) {
-                    Spacer(Modifier.weight(1f))
+                            },
+                            modifier = Modifier.width(cardWidth),
+                        )
+                    }
                 }
             }
         }
