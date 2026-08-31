@@ -102,7 +102,11 @@ fun FrettedInstrumentDiagram(
         fun positionX(fret: Int) = leftPad + fret * positionSpacing
 
         val stringSpacing = if (numStrings > 1) fretboardHeight / (numStrings - 1) else 0f
-        fun stringY(stringIndex: Int) = topPad + stringIndex * stringSpacing
+        // Row 0 of tuning.openStringMidiNotes is the lowest-pitched string (see the "Low E2 ...
+        // high E4" comments on InstrumentTunings) — draw it at the bottom and the highest-pitched
+        // string at the top, matching how a player looking down at their own instrument's neck
+        // sees the strings, rather than the reverse.
+        fun stringY(stringIndex: Int) = topPad + (numStrings - 1 - stringIndex) * stringSpacing
 
         val markerRadius = minOf(positionSpacing, stringSpacing) * 0.34f
 
@@ -262,7 +266,11 @@ private fun hitTestFret(
     val stringSpacing = if (numStrings > 1) fretboardHeight / (numStrings - 1) else 0f
 
     val stringIndex = if (numStrings > 1) {
-        ((y - topPad) / stringSpacing).roundToInt().coerceIn(0, numStrings - 1)
+        // Mirrors stringY's top-to-bottom = high-to-low flip above: row 0 on screen (y closest to
+        // topPad) is the highest-pitched string, so the raw row needs inverting back to the
+        // tuning-array index (row 0 = lowest string) that the rest of the app expects.
+        val row = ((y - topPad) / stringSpacing).roundToInt().coerceIn(0, numStrings - 1)
+        numStrings - 1 - row
     } else {
         0
     }
