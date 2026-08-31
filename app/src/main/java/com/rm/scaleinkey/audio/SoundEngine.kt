@@ -32,6 +32,7 @@ class SoundEngine(private val appContext: Context) {
 
     private var pianoPreset = 0
     private var guitarPreset = 0
+    private var ukulelePreset = 0
     private var bassPreset = 0
 
     init {
@@ -140,6 +141,9 @@ class SoundEngine(private val appContext: Context) {
         }
         pianoPreset = NativeSoundEngine.nativeGetPresetIndex(0, 0).takeIf { it >= 0 } ?: 0
         guitarPreset = NativeSoundEngine.nativeGetPresetIndex(0, 24).takeIf { it >= 0 } ?: 0
+        // GM has no ukulele; Banjo (program 105) is a much closer substitute than reusing the
+        // nylon guitar patch — falls back to that guitar patch if a custom soundfont lacks it.
+        ukulelePreset = NativeSoundEngine.nativeGetPresetIndex(0, 105).takeIf { it >= 0 } ?: guitarPreset
         bassPreset = NativeSoundEngine.nativeGetPresetIndex(0, 32).takeIf { it >= 0 } ?: 0
         loaded = true
         if (enabled) NativeSoundEngine.nativeStart()
@@ -148,7 +152,8 @@ class SoundEngine(private val appContext: Context) {
 
     private fun presetFor(instrument: InstrumentType): Int = when (instrument) {
         InstrumentType.PIANO -> pianoPreset
-        InstrumentType.GUITAR, InstrumentType.UKULELE -> guitarPreset
+        InstrumentType.GUITAR -> guitarPreset
+        InstrumentType.UKULELE -> ukulelePreset
         InstrumentType.BASS -> bassPreset
     }
 
