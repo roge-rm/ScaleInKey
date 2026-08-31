@@ -86,7 +86,7 @@ class ChordProgressionState(
 
 @Composable
 fun rememberChordProgressionState(): ChordProgressionState {
-    val bpmState = rememberSaveable { mutableIntStateOf(100) }
+    val bpmState = rememberSaveable { mutableIntStateOf(120) }
     val beatsPerChordState = rememberSaveable { mutableStateOf(BeatsPerChord.FOUR) }
     val loopState = rememberSaveable { mutableStateOf(false) }
     // NOT rememberSaveable, matching ScaleExplorerState's voicingByDegree precedent: this is
