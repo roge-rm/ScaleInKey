@@ -11,11 +11,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
+import com.rm.scaleinkey.music.ChordVoicing
 
 /** One chord in a built progression. [id] is a stable identity independent of [degree], since the
  * same diatonic degree can appear more than once in a sequence and both drag-reorder and
- * tap-to-remove need to target one specific occurrence, not "the slot with this degree". */
-data class ProgressionSlot(val id: Long, val degree: Int)
+ * tap-to-remove need to target one specific occurrence, not "the slot with this degree". [voicing]
+ * is captured at append time (not re-read from the shared per-degree choice on every render) so
+ * that later toggling a degree's triad/7th voicing on the palette doesn't retroactively change
+ * chords already queued at that degree — each queued instance keeps whatever voicing it had when
+ * it was placed. */
+data class ProgressionSlot(val id: Long, val degree: Int, val voicing: ChordVoicing)
 
 enum class BeatsPerChord(val beats: Int, val label: String) {
     ONE(1, "1"),
@@ -27,8 +32,9 @@ enum class BeatsPerChord(val beats: Int, val label: String) {
  * Holds a built chord progression and its playback settings. Mirrors [ScaleExplorerState]'s
  * pattern: a plain class over externally-owned [androidx.compose.runtime.MutableState]s, built by
  * [rememberChordProgressionState]. Deliberately holds no reference to [ScaleExplorerState] itself
- * — a slot only stores a scale degree (0-6), resolved against whatever the current scale's
- * diatonic chords are at read time, by the caller.
+ * — a slot stores a scale degree (0-6), resolved against whatever the current scale's diatonic
+ * chords are at read time by the caller, plus the triad/7th voicing it was appended with (see
+ * [ProgressionSlot.voicing]).
  */
 class ChordProgressionState(
     bpmState: MutableIntState,
@@ -50,8 +56,8 @@ class ChordProgressionState(
     val stepDurationMs: Long
         get() = (60_000L / bpm.coerceAtLeast(1)) * beatsPerChord.beats
 
-    fun append(degree: Int) {
-        slotsState.add(ProgressionSlot(id = nextIdState.intValue++.toLong(), degree = degree))
+    fun append(degree: Int, voicing: ChordVoicing) {
+        slotsState.add(ProgressionSlot(id = nextIdState.intValue++.toLong(), degree = degree, voicing = voicing))
     }
 
     fun remove(id: Long) {

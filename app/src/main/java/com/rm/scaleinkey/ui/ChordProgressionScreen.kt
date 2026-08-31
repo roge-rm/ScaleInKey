@@ -79,7 +79,6 @@ fun ChordProgressionScreen(
                             ProgressionSequenceRow(
                                 slots = progressionState.slots,
                                 chordFor = { degree -> explorerState.chords.getOrNull(degree) },
-                                voicingFor = explorerState::voicingFor,
                                 currentStepIndex = progressionState.currentStepIndex.takeIf { progressionState.isPlaying },
                                 onRemove = progressionState::remove,
                                 onMove = progressionState::move,
@@ -149,8 +148,7 @@ private fun SequencerPlaybackEffect(
             val slot = slots.getOrNull(index)
             val chord = slot?.let { explorerState.chords.getOrNull(it.degree) }
             if (chord != null) {
-                val voicing = explorerState.voicingFor(slot.degree)
-                val display = chord.display(voicing)
+                val display = chord.display(slot.voicing)
                 val midiNotes = previewMidiNotes(explorerState.instrument, display.orderedTones.map { it.pitchClass })
                 soundEngine.playChord(explorerState.instrument, midiNotes, durationMs = progressionState.stepDurationMs)
             }

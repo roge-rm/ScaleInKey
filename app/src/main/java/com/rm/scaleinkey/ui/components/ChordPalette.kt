@@ -38,16 +38,17 @@ private const val CHORDS_PER_ROW = 4
  * every tap appends to the sequence instead of selecting/deselecting. Triad/7th voicing is read
  * from [voicingFor] — the same shared per-degree choice [ChordRow] toggles on the Explore screen —
  * and long-press here toggles that same shared state via [onSeventhToggled], so a 7th chord can be
- * queued up without leaving this screen. Because the choice is shared per degree (not captured per
- * queued slot), toggling a degree's voicing here also changes how any already-queued occurrence of
- * that degree displays and plays back.
+ * queued up without leaving this screen. [onChordAppended] is handed the voicing shown on the card
+ * at tap time, which [ChordProgressionState.append] captures into that one queued slot — so later
+ * toggling a degree's voicing here changes what a *future* tap of that card appends, but never
+ * retroactively changes a chord already queued.
  */
 @Composable
 fun ChordPalette(
     chords: List<DiatonicChord>,
     voicingFor: (Int) -> ChordVoicing,
     instrument: InstrumentType,
-    onChordAppended: (Int) -> Unit,
+    onChordAppended: (degree: Int, voicing: ChordVoicing) -> Unit,
     onSeventhToggled: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -71,7 +72,7 @@ fun ChordPalette(
                             chord = chord,
                             voicing = voicing,
                             onTapped = {
-                                onChordAppended(chord.degree)
+                                onChordAppended(chord.degree, voicing)
                                 val display = chord.display(voicing)
                                 val midiNotes = previewMidiNotes(instrument, display.orderedTones.map { it.pitchClass })
                                 soundEngine.playChord(instrument, midiNotes)
