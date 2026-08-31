@@ -59,9 +59,9 @@ class SoundEngine(private val appContext: Context) {
         triggerNotes(instrument, listOf(midiNote), 0.9f, NOTE_PREVIEW_MS)
     }
 
-    fun playChord(instrument: InstrumentType, midiNotes: List<Int>) {
+    fun playChord(instrument: InstrumentType, midiNotes: List<Int>, durationMs: Long = CHORD_PREVIEW_MS) {
         if (midiNotes.isEmpty()) return
-        triggerNotes(instrument, midiNotes, 0.85f, CHORD_PREVIEW_MS)
+        triggerNotes(instrument, midiNotes, 0.85f, durationMs)
     }
 
     private fun triggerNotes(instrument: InstrumentType, midiNotes: List<Int>, velocity: Float, previewMs: Long) {
