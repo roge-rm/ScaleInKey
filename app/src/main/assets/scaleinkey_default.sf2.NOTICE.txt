@@ -16,4 +16,8 @@ Original soundfont: https://member.keymusician.com/Member/FluidR3_GM/
 License: MIT. Full original license text:
 https://member.keymusician.com/Member/FluidR3_GM/README.html
 
+Regenerate this file with tools/trim_sf2.py (verify the output with
+tools/verify_sf2.py before trusting it) if a bundled instrument ever
+needs to change.
+
 Copyright (c) Frank Wen. Used and redistributed under the MIT License.
