@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -31,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInParent
@@ -54,6 +56,11 @@ import kotlin.math.abs
 private val CHIP_WIDTH = 64.dp
 private val CHIP_HEIGHT = 64.dp
 private val CHIP_SPACING = 8.dp
+
+// Wide enough to cover the row's own 16dp horizontal padding plus bleed a little onto the
+// edge-most chip, so the fade reads as "the content itself is fading out" rather than just
+// shading empty padding — narrower than that and it's too subtle to notice at a glance.
+private val EDGE_FADE_WIDTH = 28.dp
 
 /**
  * The built progression, as a horizontally-scrollable row of fixed-size chips (a plain `Row`, not
@@ -105,69 +112,110 @@ fun ProgressionSequenceRow(
     // comparing these positions.
     val chipCenters = remember { mutableStateMapOf<Long, Float>() }
 
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(CHIP_SPACING),
-    ) {
-        slots.forEachIndexed { index, slot ->
-            val isDragging = slot.id == draggingId
+    val scrollState = rememberScrollState()
+    // A fixed-height wrapper (rather than letting the Box wrap the Row's content height) is what
+    // lets the fade overlays below use fillMaxHeight() safely — without an explicit height here,
+    // the Box's own height comes from wrapping the Row, which is a circular constraint for a
+    // sibling that also wants to fill that same height.
+    Box(modifier = modifier.fillMaxWidth().height(CHIP_HEIGHT)) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .horizontalScroll(scrollState)
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(CHIP_SPACING),
+        ) {
+            slots.forEachIndexed { index, slot ->
+                val isDragging = slot.id == draggingId
+                Box(
+                    modifier = Modifier
+                        .width(CHIP_WIDTH)
+                        .height(CHIP_HEIGHT)
+                        .onGloballyPositioned { coords ->
+                            chipCenters[slot.id] = coords.boundsInParent().center.x
+                        }
+                        .graphicsLayer { translationX = if (isDragging) dragOffsetX else 0f }
+                        .zIndex(if (isDragging) 1f else 0f)
+                        .pointerInput(slot.id) {
+                            detectTapGestures(onTap = { onRemove(slot.id) })
+                        }
+                        .pointerInput(slot.id) {
+                            detectDragGesturesAfterLongPress(
+                                onDragStart = {
+                                    draggingId = slot.id
+                                    dragOffsetX = 0f
+                                },
+                                onDrag = { change, dragAmount ->
+                                    change.consume()
+                                    dragOffsetX += dragAmount.x
+                                    val liveSlots = currentSlots
+                                    val draggedIndex = liveSlots.indexOfFirst { it.id == slot.id }
+                                    if (draggedIndex == -1) return@detectDragGesturesAfterLongPress
+                                    val draggedCenter = (chipCenters[slot.id] ?: 0f) + dragOffsetX
+                                    val targetIndex = liveSlots.indices.minByOrNull { i ->
+                                        abs((chipCenters[liveSlots[i].id] ?: 0f) - draggedCenter)
+                                    } ?: draggedIndex
+                                    if (targetIndex != draggedIndex) {
+                                        // Correct the accumulated visual offset by one chip-step so
+                                        // the dragged chip keeps tracking the finger smoothly across
+                                        // the swap instead of jumping once the list underneath
+                                        // reorders.
+                                        dragOffsetX -= if (targetIndex > draggedIndex) stepPx else -stepPx
+                                        onMove(draggedIndex, targetIndex)
+                                    }
+                                },
+                                onDragEnd = {
+                                    draggingId = null
+                                    dragOffsetX = 0f
+                                },
+                                onDragCancel = {
+                                    draggingId = null
+                                    dragOffsetX = 0f
+                                },
+                            )
+                        },
+                ) {
+                    SequenceChip(
+                        chord = chordFor(slot.degree),
+                        voicing = slot.voicing,
+                        isCurrentStep = currentStepIndex == index,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+            }
+        }
+
+        // Edge fades: a purely visual cue (no touch handling of their own, so drag/tap on chips
+        // underneath is unaffected) that there's more of the sequence to scroll to in that
+        // direction. Each one only appears while there's actually somewhere left to scroll —
+        // canScrollBackward/canScrollForward flip live as the user scrolls, so the indicator at
+        // the start only shows once the list has been scrolled past its beginning, and the one at
+        // the end disappears once the last chip comes fully into view.
+        if (scrollState.canScrollBackward) {
             Box(
                 modifier = Modifier
-                    .width(CHIP_WIDTH)
-                    .height(CHIP_HEIGHT)
-                    .onGloballyPositioned { coords ->
-                        chipCenters[slot.id] = coords.boundsInParent().center.x
-                    }
-                    .graphicsLayer { translationX = if (isDragging) dragOffsetX else 0f }
-                    .zIndex(if (isDragging) 1f else 0f)
-                    .pointerInput(slot.id) {
-                        detectTapGestures(onTap = { onRemove(slot.id) })
-                    }
-                    .pointerInput(slot.id) {
-                        detectDragGesturesAfterLongPress(
-                            onDragStart = {
-                                draggingId = slot.id
-                                dragOffsetX = 0f
-                            },
-                            onDrag = { change, dragAmount ->
-                                change.consume()
-                                dragOffsetX += dragAmount.x
-                                val liveSlots = currentSlots
-                                val draggedIndex = liveSlots.indexOfFirst { it.id == slot.id }
-                                if (draggedIndex == -1) return@detectDragGesturesAfterLongPress
-                                val draggedCenter = (chipCenters[slot.id] ?: 0f) + dragOffsetX
-                                val targetIndex = liveSlots.indices.minByOrNull { i ->
-                                    abs((chipCenters[liveSlots[i].id] ?: 0f) - draggedCenter)
-                                } ?: draggedIndex
-                                if (targetIndex != draggedIndex) {
-                                    // Correct the accumulated visual offset by one chip-step so the
-                                    // dragged chip keeps tracking the finger smoothly across the
-                                    // swap instead of jumping once the list underneath reorders.
-                                    dragOffsetX -= if (targetIndex > draggedIndex) stepPx else -stepPx
-                                    onMove(draggedIndex, targetIndex)
-                                }
-                            },
-                            onDragEnd = {
-                                draggingId = null
-                                dragOffsetX = 0f
-                            },
-                            onDragCancel = {
-                                draggingId = null
-                                dragOffsetX = 0f
-                            },
+                    .align(Alignment.CenterStart)
+                    .fillMaxHeight()
+                    .width(EDGE_FADE_WIDTH)
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(MaterialTheme.colorScheme.background, Color.Transparent)
                         )
-                    },
-            ) {
-                SequenceChip(
-                    chord = chordFor(slot.degree),
-                    voicing = slot.voicing,
-                    isCurrentStep = currentStepIndex == index,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
+                    ),
+            )
+        }
+        if (scrollState.canScrollForward) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .fillMaxHeight()
+                    .width(EDGE_FADE_WIDTH)
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(Color.Transparent, MaterialTheme.colorScheme.background)
+                        )
+                    ),
+            )
         }
     }
 }
