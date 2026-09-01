@@ -29,12 +29,21 @@ import kotlin.math.roundToInt
 private val MARKER_FRETS = setOf(3, 5, 7, 9)
 private const val DOUBLE_MARKER_FRET = 12
 
-// Fretboard padding, expressed as a fraction of the canvas size. Shared between drawing and
-// tap hit-testing so the two geometries can never drift apart.
+// Fretboard padding, expressed as a fraction of canvas *width* on every side — including top and
+// bottom, even though those measure a vertical distance. A height-fraction would shrink right
+// along with the box whenever content (fewer strings) makes the box shorter, while the content it
+// needs to clear (note-circle radius, label text) is sized from width — so a height-based pad
+// could end up smaller than the circle it's supposed to clear, clipping it. A width-based pad
+// stays constant regardless of how short the box gets. Shared between drawing and tap hit-testing
+// so the two geometries can never drift apart.
 private const val LEFT_PAD_FRACTION = 0.07f
 private const val RIGHT_PAD_FRACTION = 0.02f
-private const val TOP_PAD_FRACTION = 0.06f
-private const val BOTTOM_PAD_FRACTION = 0.16f
+// Comfortably bigger than NOTE_CIRCLE_RADIUS_FRACTION so the topmost string's note circle never
+// touches the top edge.
+private const val TOP_PAD_FRACTION = 0.045f
+// Room for a fretted note circle's bottom edge, then the fret-number guide row below it, with
+// space to spare — see fretLabelY below.
+private const val BOTTOM_PAD_FRACTION = 0.10f
 
 @Composable
 fun FrettedInstrumentDiagram(
@@ -77,7 +86,7 @@ fun FrettedInstrumentDiagram(
     // that difference (and the windowed scale-box <-> ChordShapeDiagram transition) animates
     // smoothly instead of jumping.
     val contentAspectRatio = if (numStrings > 1) {
-        (1f - TOP_PAD_FRACTION - BOTTOM_PAD_FRACTION) / ((numStrings - 1) * STRING_SPACING_FRACTION)
+        1f / (TOP_PAD_FRACTION + BOTTOM_PAD_FRACTION + (numStrings - 1) * STRING_SPACING_FRACTION)
     } else {
         1f
     }
@@ -102,8 +111,8 @@ fun FrettedInstrumentDiagram(
     ) {
         val leftPad = size.width * LEFT_PAD_FRACTION
         val rightPad = size.width * RIGHT_PAD_FRACTION
-        val topPad = size.height * TOP_PAD_FRACTION
-        val bottomPad = size.height * BOTTOM_PAD_FRACTION
+        val topPad = size.width * TOP_PAD_FRACTION
+        val bottomPad = size.width * BOTTOM_PAD_FRACTION
 
         val fretboardWidth = size.width - leftPad - rightPad
 
@@ -279,8 +288,8 @@ private fun hitTestFret(
 ): Pair<Int, Int>? {
     val leftPad = width * LEFT_PAD_FRACTION
     val rightPad = width * RIGHT_PAD_FRACTION
-    val topPad = height * TOP_PAD_FRACTION
-    val bottomPad = height * BOTTOM_PAD_FRACTION
+    val topPad = width * TOP_PAD_FRACTION
+    val bottomPad = width * BOTTOM_PAD_FRACTION
 
     val fretboardWidth = width - leftPad - rightPad
     val fretboardHeight = height - topPad - bottomPad
