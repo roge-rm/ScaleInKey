@@ -29,13 +29,6 @@ private const val TOP_PAD_FRACTION = 0.18f // room for the open/mute (○/✕) m
 private const val BOTTOM_PAD_FRACTION = 0.04f
 private const val FRET_ROWS = 4
 
-// Guitar's string count. The canvas aspect ratio and per-string spacing are always computed as
-// if there were this many strings — a narrower instrument (Ukulele/Bass, 4 strings) gets a
-// correspondingly narrower grid centered in the same space, rather than stretching to fill the
-// full width. Without this, fewer strings meant *more* space per string and so visibly larger
-// dots/text than Guitar's, which looked inconsistent switching between instrument tabs.
-private const val REFERENCE_STRINGS = 6
-
 /**
  * Traditional vertical songbook chord-box: one specific voicing, one mark per string (open/muted/
  * fretted-with-finger-number), unlike [FrettedInstrumentDiagram] which shows every occurrence of
@@ -88,10 +81,12 @@ fun ChordShapeDiagram(
 
         val gridWidth = size.width - leftPad - rightPad
 
-        // Always spaced as if there were REFERENCE_STRINGS strings, then centered — see the
-        // constant's doc comment above for why.
-        val stringSpacing = gridWidth / (REFERENCE_STRINGS - 1)
-        val gridLeftOffset = (gridWidth - stringSpacing * (numStrings - 1)) / 2f
+        // A shared absolute string spacing (see STRING_SPACING_FRACTION), not
+        // gridWidth/(numStrings-1) — otherwise this diagram's own generous grid width stretches
+        // strings apart further than FrettedInstrumentDiagram's neck/scale-box views. Centered in
+        // the leftover width, same as a narrower instrument's fewer strings always were.
+        val stringSpacing = size.width * STRING_SPACING_FRACTION
+        val gridLeftOffset = ((gridWidth - stringSpacing * (numStrings - 1)) / 2f).coerceAtLeast(0f)
         fun stringX(stringIndex: Int) = leftPad + gridLeftOffset + stringIndex * stringSpacing
 
         // A shared absolute row height (see FRET_SPACING_FRACTION), not gridHeight/FRET_ROWS —
@@ -237,7 +232,7 @@ private fun hitTestChordShapeString(x: Float, width: Float, numStrings: Int): In
     val gridWidth = width - leftPad - rightPad
     if (gridWidth <= 0f) return null
     if (numStrings <= 1) return 0
-    val referenceSpacing = gridWidth / (REFERENCE_STRINGS - 1)
-    val gridLeftOffset = (gridWidth - referenceSpacing * (numStrings - 1)) / 2f
-    return ((x - leftPad - gridLeftOffset) / referenceSpacing).roundToInt().coerceIn(0, numStrings - 1)
+    val stringSpacing = width * STRING_SPACING_FRACTION
+    val gridLeftOffset = ((gridWidth - stringSpacing * (numStrings - 1)) / 2f).coerceAtLeast(0f)
+    return ((x - leftPad - gridLeftOffset) / stringSpacing).roundToInt().coerceIn(0, numStrings - 1)
 }
