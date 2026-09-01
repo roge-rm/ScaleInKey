@@ -6,6 +6,7 @@ enum class ScaleGroup(val displayName: String) {
     PENTATONIC_BLUES("Pentatonic & Blues"),
     WORLD("World & Exotic"),
     JAZZ("Jazz"),
+    SYMMETRIC("Symmetric"),
 }
 
 enum class ScaleType(
@@ -59,6 +60,10 @@ enum class ScaleType(
         "Minor Blues", listOf(0, 3, 5, 6, 7, 10), ScaleGroup.PENTATONIC_BLUES,
         letterOffsets = listOf(0, 2, 3, 4, 4, 6), supportsChords = false,
     ),
+    EGYPTIAN_PENTATONIC(
+        "Egyptian Pentatonic (Suspended)", listOf(0, 2, 5, 7, 10), ScaleGroup.PENTATONIC_BLUES,
+        letterOffsets = listOf(0, 1, 3, 4, 6), supportsChords = false,
+    ),
 
     HUNGARIAN_MINOR(
         "Hungarian Minor", listOf(0, 2, 3, 6, 7, 8, 11), ScaleGroup.WORLD,
@@ -88,9 +93,45 @@ enum class ScaleType(
         "Enigmatic", listOf(0, 1, 4, 6, 8, 10, 11), ScaleGroup.WORLD,
         supportsChords = false,
     ),
+    PHRYGIAN_DOMINANT(
+        "Phrygian Dominant", listOf(0, 1, 4, 5, 7, 8, 10), ScaleGroup.WORLD,
+    ),
+    NEAPOLITAN_MINOR(
+        "Neapolitan Minor", listOf(0, 1, 3, 5, 7, 8, 11), ScaleGroup.WORLD,
+        supportsChords = false,
+    ),
+    NEAPOLITAN_MAJOR(
+        "Neapolitan Major", listOf(0, 1, 3, 5, 7, 9, 11), ScaleGroup.WORLD,
+        supportsChords = false,
+    ),
 
     ALTERED("Altered", listOf(0, 1, 3, 4, 6, 8, 10), ScaleGroup.JAZZ),
     LYDIAN_DOMINANT("Lydian Dominant", listOf(0, 2, 4, 6, 7, 9, 10), ScaleGroup.JAZZ),
+    LYDIAN_AUGMENTED("Lydian Augmented", listOf(0, 2, 4, 6, 8, 9, 11), ScaleGroup.JAZZ),
+    LOCRIAN_NATURAL_2(
+        "Locrian ♮2 (Half-Diminished)", listOf(0, 2, 3, 5, 6, 8, 10), ScaleGroup.JAZZ,
+    ),
+    BEBOP_DOMINANT(
+        "Bebop Dominant", listOf(0, 2, 4, 5, 7, 9, 10, 11), ScaleGroup.JAZZ,
+        letterOffsets = listOf(0, 1, 2, 3, 4, 5, 6, 6), supportsChords = false,
+    ),
+    BEBOP_MAJOR(
+        "Bebop Major", listOf(0, 2, 4, 5, 7, 8, 9, 11), ScaleGroup.JAZZ,
+        letterOffsets = listOf(0, 1, 2, 3, 4, 4, 5, 6), supportsChords = false,
+    ),
+
+    WHOLE_TONE(
+        "Whole Tone", listOf(0, 2, 4, 6, 8, 10), ScaleGroup.SYMMETRIC,
+        letterOffsets = listOf(0, 1, 2, 3, 4, 5), supportsChords = false,
+    ),
+    DIMINISHED_WHOLE_HALF(
+        "Diminished Whole-Half", listOf(0, 2, 3, 5, 6, 8, 9, 11), ScaleGroup.SYMMETRIC,
+        letterOffsets = listOf(0, 1, 2, 3, 4, 5, 5, 6), supportsChords = false,
+    ),
+    DIMINISHED_HALF_WHOLE(
+        "Diminished Half-Whole", listOf(0, 1, 3, 4, 6, 7, 9, 10), ScaleGroup.SYMMETRIC,
+        letterOffsets = listOf(0, 1, 2, 2, 3, 4, 5, 6), supportsChords = false,
+    ),
     ;
 
     // displayName with any parenthetical qualifier stripped, for compact UI (e.g. dropdown fields).
