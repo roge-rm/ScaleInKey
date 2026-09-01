@@ -2,7 +2,7 @@
 
 This is an Android (14 or higher) app to show you the notes and chords in a given mode or scale. The app store is full of paid or ad-filled apps that do this (and more! or less!) so I decided to test claude out and release something for free. Cheers.
 
-<img src="docs/screenshot-main.png" alt="ScaleInKey main screen: C Ionian scale with diatonic chords and the piano diagram" width="360" />
+<img src="docs/screenshot-main.png" alt="ScaleInKey main screen: C Ionian scale with diatonic chords and the Guitar fingering-chart diagram for the I chord" width="360" />
 
 ## Features
 
@@ -23,7 +23,12 @@ This is an Android (14 or higher) app to show you the notes and chords in a give
   played as strummed chords.
 - **Tap-to-hear playback** of any note, chord, or fretboard/chord-chart position, via a real SF2
   synth (not a beeper) — bundled with a small default soundfont, with the option to load your own
-  `.sf2` file.
+  `.sf2` file. Every tap flashes a distinct highlight color so it's clear exactly what you hit.
+- **Chord progression sequencer** — a separate screen (switch to it via the 🎹 icon next to the
+  title) for building an ordered sequence of the current scale's diatonic chords and playing it
+  back at a settable tempo: a BPM stepper (default 120), beats-per-chord, a loop toggle, tap to
+  append a chord from the palette (long-press to toggle its triad/7th voicing first), and
+  drag-to-reorder or tap-to-remove on chords already queued.
 
 ## Requirements
 
