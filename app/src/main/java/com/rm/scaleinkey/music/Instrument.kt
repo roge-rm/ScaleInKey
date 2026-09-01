@@ -26,6 +26,12 @@ object InstrumentTunings {
         // Low E1, A1, D2, G2
         openStringMidiNotes = listOf(28, 33, 38, 43),
     )
+    val BASS_5 = StringInstrumentTuning(
+        label = "Bass (5-string)",
+        // Low B0, then the same E1, A1, D2, G2 as 4-string BASS — a fifth-lower B string added
+        // below, not a re-tuning of the existing four.
+        openStringMidiNotes = listOf(23, 28, 33, 38, 43),
+    )
 }
 
 fun fretMidiNote(tuning: StringInstrumentTuning, stringIndex: Int, fret: Int): Int =

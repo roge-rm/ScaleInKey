@@ -76,14 +76,16 @@ class ChordFingeringTest {
     }
 
     @Test
-    fun `findBassRootPosition always sounds the requested root, for every root`() {
-        for (root in CANONICAL_ROOTS) {
-            val shape = findBassRootPosition(InstrumentTunings.BASS, root.pitchClass)
-            val sounded = shape.marks.filter { it.fret != null }
-            assertEquals("root=${root.displayName()}: expected exactly one sounded string", 1, sounded.size)
-            val mark = sounded.single()
-            assertEquals(root.pitchClass, mark.pitchClass)
-            assertTrue(mark.isRoot)
+    fun `findBassRootPosition always sounds the requested root, for every root, on 4- and 5-string bass`() {
+        for (tuning in listOf(InstrumentTunings.BASS, InstrumentTunings.BASS_5)) {
+            for (root in CANONICAL_ROOTS) {
+                val shape = findBassRootPosition(tuning, root.pitchClass)
+                val sounded = shape.marks.filter { it.fret != null }
+                assertEquals("${tuning.label} root=${root.displayName()}: expected exactly one sounded string", 1, sounded.size)
+                val mark = sounded.single()
+                assertEquals(root.pitchClass, mark.pitchClass)
+                assertTrue(mark.isRoot)
+            }
         }
     }
 }

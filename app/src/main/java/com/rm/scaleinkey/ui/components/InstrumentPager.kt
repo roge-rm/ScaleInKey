@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rm.scaleinkey.music.ChordShape
@@ -58,7 +59,10 @@ fun InstrumentPager(
     onChartViewChanged: (Boolean) -> Unit,
     guitarChordShape: ChordShape?,
     ukuleleChordShape: ChordShape?,
+    bassTuning: StringInstrumentTuning,
     bassRootShape: ChordShape?,
+    bassFiveStringEnabled: Boolean,
+    onBassFiveStringChanged: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val pagerState = rememberPagerState(
@@ -133,7 +137,7 @@ fun InstrumentPager(
                     )
                     InstrumentType.BASS -> FrettedOrChartDiagram(
                         instrument = InstrumentType.BASS,
-                        tuning = InstrumentTunings.BASS,
+                        tuning = bassTuning,
                         rootPitchClass = rootPitchClass,
                         highlightedNotes = highlightedNotes,
                         isChordSelection = isChordSelection,
@@ -160,13 +164,23 @@ fun InstrumentPager(
                         .align(Alignment.Center),
                 )
                 if (TABS[pagerState.currentPage] != InstrumentType.PIANO) {
-                    ChartViewToggleButton(
-                        chartViewEnabled = chartViewEnabled,
-                        onToggle = { onChartViewChanged(!chartViewEnabled) },
+                    Row(
                         modifier = Modifier
                             .align(Alignment.CenterStart)
                             .padding(start = 16.dp),
-                    )
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        ChartViewToggleButton(
+                            chartViewEnabled = chartViewEnabled,
+                            onToggle = { onChartViewChanged(!chartViewEnabled) },
+                        )
+                        if (TABS[pagerState.currentPage] == InstrumentType.BASS) {
+                            BassStringCountToggleButton(
+                                fiveStringEnabled = bassFiveStringEnabled,
+                                onToggle = { onBassFiveStringChanged(!bassFiveStringEnabled) },
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -241,6 +255,32 @@ private fun ChartViewToggleButton(chartViewEnabled: Boolean, onToggle: () -> Uni
     ) {
         Box(contentAlignment = Alignment.Center) {
             Text(if (chartViewEnabled) "📋" else "🎸", fontSize = 14.sp)
+        }
+    }
+}
+
+/**
+ * Bass-only toggle between the standard 4-string tuning (EADG) and a 5-string tuning with an
+ * added low B string (BEADG) — same size and style as [ChartViewToggleButton], sitting right next
+ * to it, so it reads as a matching pair of small mode switches rather than competing for
+ * attention against the diagram itself.
+ */
+@Composable
+private fun BassStringCountToggleButton(fiveStringEnabled: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier) {
+    Surface(
+        onClick = onToggle,
+        modifier = modifier.size(32.dp),
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+        tonalElevation = 3.dp,
+        shadowElevation = 3.dp,
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(
+                text = if (fiveStringEnabled) "5" else "4",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+            )
         }
     }
 }
