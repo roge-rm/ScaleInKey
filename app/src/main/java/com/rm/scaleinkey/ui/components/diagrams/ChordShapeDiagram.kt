@@ -23,17 +23,22 @@ import com.rm.scaleinkey.music.ChordShape
 import com.rm.scaleinkey.ui.theme.scaleColors
 import kotlin.math.roundToInt
 
+// Padding as a fraction of canvas *width* on every side — including top and bottom, even though
+// those measure a vertical distance. See FrettedInstrumentDiagram's identical top/bottom padding
+// comment for why: a height-fraction pad shrinks along with this content-derived box, while the
+// content it needs to clear (marker text, note-circle radius) is sized from width, so it needs a
+// width-based (not height-based) pad to stay sufficient regardless of box height.
 private const val LEFT_PAD_FRACTION = 0.14f // room for a "Nfr" position label when startFret > 0
 private const val RIGHT_PAD_FRACTION = 0.06f
-private const val TOP_PAD_FRACTION = 0.18f // room for the open/mute (○/✕) marker row
-private const val BOTTOM_PAD_FRACTION = 0.04f
+private const val TOP_PAD_FRACTION = 0.11f // room for the open/mute (○/✕) marker row
+private const val BOTTOM_PAD_FRACTION = 0.03f
 private const val FRET_ROWS = 4
 
 // Box height content-derived from FRET_ROWS at the shared FRET_SPACING_FRACTION (frets run
 // vertically here — see that constant's doc), padding included. The caller wraps this diagram in
 // Modifier.animateContentSize() so switching to/from FrettedInstrumentDiagram's windowed
 // scale-box (a different natural height) animates smoothly instead of jumping.
-private const val CONTENT_ASPECT_RATIO = (1f - TOP_PAD_FRACTION - BOTTOM_PAD_FRACTION) / (FRET_ROWS * FRET_SPACING_FRACTION)
+private const val CONTENT_ASPECT_RATIO = 1f / (TOP_PAD_FRACTION + BOTTOM_PAD_FRACTION + FRET_ROWS * FRET_SPACING_FRACTION)
 
 /**
  * Traditional vertical songbook chord-box: one specific voicing, one mark per string (open/muted/
@@ -82,8 +87,8 @@ fun ChordShapeDiagram(
     ) {
         val leftPad = size.width * LEFT_PAD_FRACTION
         val rightPad = size.width * RIGHT_PAD_FRACTION
-        val topPad = size.height * TOP_PAD_FRACTION
-        val bottomPad = size.height * BOTTOM_PAD_FRACTION
+        val topPad = size.width * TOP_PAD_FRACTION
+        val bottomPad = size.width * BOTTOM_PAD_FRACTION
 
         val gridWidth = size.width - leftPad - rightPad
 
