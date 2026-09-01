@@ -91,16 +91,19 @@ fun ChordShapeDiagram(
         val topPad = size.width * TOP_PAD_FRACTION * CHART_MODE_SCALE
         val bottomPad = size.width * BOTTOM_PAD_FRACTION * CHART_MODE_SCALE
 
-        val gridWidth = size.width - leftPad - rightPad
-
         // A shared absolute string spacing (see STRING_SPACING_FRACTION), scaled by
         // CHART_MODE_SCALE — see that constant's doc. Not gridWidth/(numStrings-1), otherwise this
         // diagram's own generous grid width stretches strings apart further than
-        // FrettedInstrumentDiagram's neck/scale-box views. Centered in the leftover width, same as
-        // a narrower instrument's fewer strings always were.
+        // FrettedInstrumentDiagram's neck/scale-box views. Centered in the *whole* box width, not
+        // just the leftPad-to-(width-rightPad) span — which would skew the grid toward whichever
+        // side has the smaller of the two (asymmetric, label-reserving) pads — floored at leftPad
+        // and ceilinged at (width - rightPad - stringsContentWidth) so it never creeps into either
+        // margin.
         val stringSpacing = size.width * STRING_SPACING_FRACTION * CHART_MODE_SCALE
-        val gridLeftOffset = ((gridWidth - stringSpacing * (numStrings - 1)) / 2f).coerceAtLeast(0f)
-        fun stringX(stringIndex: Int) = leftPad + gridLeftOffset + stringIndex * stringSpacing
+        val stringsContentWidth = stringSpacing * (numStrings - 1)
+        val maxGridLeft = (size.width - rightPad - stringsContentWidth).coerceAtLeast(leftPad)
+        val gridLeft = ((size.width - stringsContentWidth) / 2f).coerceIn(leftPad, maxGridLeft)
+        fun stringX(stringIndex: Int) = gridLeft + stringIndex * stringSpacing
 
         // A shared absolute row height (see FRET_SPACING_FRACTION), scaled by CHART_MODE_SCALE —
         // not gridHeight/FRET_ROWS, otherwise this grid's 4 rows fill the whole available height,
@@ -154,8 +157,7 @@ fun ChordShapeDiagram(
         }
 
         // Nut (open-position shapes) or a thin line + position label (movable/barre shapes).
-        val gridLeft = leftPad + gridLeftOffset
-        val gridRight = leftPad + gridLeftOffset + stringSpacing * (numStrings - 1)
+        val gridRight = gridLeft + stringsContentWidth
         if (shape.startFret == 0) {
             drawLine(
                 color = nutColor,
@@ -244,10 +246,11 @@ fun ChordShapeDiagram(
 private fun hitTestChordShapeString(x: Float, width: Float, numStrings: Int): Int? {
     val leftPad = width * LEFT_PAD_FRACTION * CHART_MODE_SCALE
     val rightPad = width * RIGHT_PAD_FRACTION * CHART_MODE_SCALE
-    val gridWidth = width - leftPad - rightPad
-    if (gridWidth <= 0f) return null
+    if (width - leftPad - rightPad <= 0f) return null
     if (numStrings <= 1) return 0
     val stringSpacing = width * STRING_SPACING_FRACTION * CHART_MODE_SCALE
-    val gridLeftOffset = ((gridWidth - stringSpacing * (numStrings - 1)) / 2f).coerceAtLeast(0f)
-    return ((x - leftPad - gridLeftOffset) / stringSpacing).roundToInt().coerceIn(0, numStrings - 1)
+    val stringsContentWidth = stringSpacing * (numStrings - 1)
+    val maxGridLeft = (width - rightPad - stringsContentWidth).coerceAtLeast(leftPad)
+    val gridLeft = ((width - stringsContentWidth) / 2f).coerceIn(leftPad, maxGridLeft)
+    return ((x - gridLeft) / stringSpacing).roundToInt().coerceIn(0, numStrings - 1)
 }
