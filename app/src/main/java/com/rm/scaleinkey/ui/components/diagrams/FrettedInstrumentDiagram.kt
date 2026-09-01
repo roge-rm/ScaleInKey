@@ -29,8 +29,6 @@ import kotlin.math.roundToInt
 private val MARKER_FRETS = setOf(3, 5, 7, 9)
 private const val DOUBLE_MARKER_FRET = 12
 
-enum class FretLabelMode { NOTE_NAME, FINGER_NUMBER }
-
 // Fretboard padding, expressed as a fraction of the canvas size. Shared between drawing and
 // tap hit-testing so the two geometries can never drift apart.
 private const val LEFT_PAD_FRACTION = 0.07f
@@ -44,7 +42,6 @@ fun FrettedInstrumentDiagram(
     rootPitchClass: Int,
     highlightedNotes: List<Note>,
     isChordSelection: Boolean,
-    labelMode: FretLabelMode = FretLabelMode.NOTE_NAME,
     // Null keeps this diagram's own numFrets/numStrings-derived shape (the full 12-fret neck
     // view). Chart mode's windowed scale-box (fretCount == 4, via scaleBoxWindow()) passes
     // CHART_MODE_ASPECT_RATIO instead, so it matches ChordShapeDiagram's box exactly — otherwise
@@ -211,11 +208,7 @@ fun FrettedInstrumentDiagram(
                 val x = if (f == 0) positionX(f) + markerRadius * 1.5f else positionX(f) - positionSpacing / 2f
                 val center = Offset(x, stringY(s))
                 drawCircle(color = color, radius = markerRadius, center = center)
-                val labelText = when (labelMode) {
-                    FretLabelMode.NOTE_NAME -> labelByPitchClass[pitchClass]?.displayName()
-                    FretLabelMode.FINGER_NUMBER -> if (f == 0) null else f.toString()
-                }
-                labelText?.let { text ->
+                labelByPitchClass[pitchClass]?.displayName()?.let { text ->
                     drawCenteredText(
                         text = text,
                         center = center,
@@ -234,11 +227,7 @@ fun FrettedInstrumentDiagram(
             val center = Offset(x, stringY(s))
             drawCircle(color = pressedColor, radius = markerRadius, center = center)
             val pressedPitchClass = fretPitchClass(tuning, s, f)
-            val labelText = when (labelMode) {
-                FretLabelMode.NOTE_NAME -> labelByPitchClass[pressedPitchClass]?.displayName()
-                FretLabelMode.FINGER_NUMBER -> if (f == 0) null else f.toString()
-            }
-            labelText?.let { text ->
+            labelByPitchClass[pressedPitchClass]?.displayName()?.let { text ->
                 drawCenteredText(
                     text = text,
                     center = center,
