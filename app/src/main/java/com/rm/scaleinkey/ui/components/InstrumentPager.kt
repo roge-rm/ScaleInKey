@@ -36,6 +36,7 @@ import com.rm.scaleinkey.music.StringInstrumentTuning
 import com.rm.scaleinkey.music.fretMidiNote
 import com.rm.scaleinkey.music.scaleBoxWindow
 import com.rm.scaleinkey.ui.LocalSoundEngine
+import com.rm.scaleinkey.ui.components.diagrams.CHART_MODE_ASPECT_RATIO
 import com.rm.scaleinkey.ui.components.diagrams.ChordShapeDiagram
 import com.rm.scaleinkey.ui.components.diagrams.FretLabelMode
 import com.rm.scaleinkey.ui.components.diagrams.FrettedInstrumentDiagram
@@ -201,6 +202,7 @@ private fun FrettedOrChartDiagram(
             highlightedNotes = highlightedNotes,
             isChordSelection = isChordSelection,
             labelMode = FretLabelMode.FINGER_NUMBER,
+            aspectRatioOverride = CHART_MODE_ASPECT_RATIO,
             onFretTapped = { stringIndex, fret ->
                 soundEngine.playNote(instrument, fretMidiNote(tuning, stringIndex, fret))
             },

@@ -65,7 +65,7 @@ fun ChordShapeDiagram(
     Canvas(
         modifier = modifier
             .fillMaxWidth()
-            .aspectRatio(REFERENCE_STRINGS / (FRET_ROWS.toFloat() * 1.35f))
+            .aspectRatio(CHART_MODE_ASPECT_RATIO)
             .pointerInput(shape) {
                 detectTapGestures(
                     onPress = { offset ->

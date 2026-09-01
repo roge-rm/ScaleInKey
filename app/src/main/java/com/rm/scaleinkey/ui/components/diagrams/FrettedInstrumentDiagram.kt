@@ -45,6 +45,13 @@ fun FrettedInstrumentDiagram(
     highlightedNotes: List<Note>,
     isChordSelection: Boolean,
     labelMode: FretLabelMode = FretLabelMode.NOTE_NAME,
+    // Null keeps this diagram's own numFrets/numStrings-derived shape (the full 12-fret neck
+    // view). Chart mode's windowed scale-box (fretCount == 4, via scaleBoxWindow()) passes
+    // CHART_MODE_ASPECT_RATIO instead, so it matches ChordShapeDiagram's box exactly — otherwise
+    // this diagram's own formula, tuned for a wide 12-fret box, produces a tall portrait box for
+    // only 4 frets, and the diagram visibly jumps in size whenever a chord is selected/deselected
+    // (switching between this and ChordShapeDiagram) while chart mode stays on.
+    aspectRatioOverride: Float? = null,
     onFretTapped: (stringIndex: Int, fret: Int) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier,
 ) {
@@ -75,7 +82,7 @@ fun FrettedInstrumentDiagram(
     Canvas(
         modifier = modifier
             .fillMaxWidth()
-            .aspectRatio(numFrets / (numStrings.toFloat() * 1.15f))
+            .aspectRatio(aspectRatioOverride ?: (numFrets / (numStrings.toFloat() * 1.15f)))
             .pointerInput(tuning) {
                 detectTapGestures(
                     onPress = { offset ->
