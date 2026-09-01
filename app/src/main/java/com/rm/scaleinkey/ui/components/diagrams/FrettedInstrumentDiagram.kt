@@ -42,13 +42,6 @@ fun FrettedInstrumentDiagram(
     rootPitchClass: Int,
     highlightedNotes: List<Note>,
     isChordSelection: Boolean,
-    // Null keeps this diagram's own numFrets/numStrings-derived shape (the full 12-fret neck
-    // view). Chart mode's windowed scale-box (fretCount == 4, via scaleBoxWindow()) passes
-    // CHART_MODE_ASPECT_RATIO instead, so it matches ChordShapeDiagram's box exactly — otherwise
-    // this diagram's own formula, tuned for a wide 12-fret box, produces a tall portrait box for
-    // only 4 frets, and the diagram visibly jumps in size whenever a chord is selected/deselected
-    // (switching between this and ChordShapeDiagram) while chart mode stays on.
-    aspectRatioOverride: Float? = null,
     onFretTapped: (stringIndex: Int, fret: Int) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier,
 ) {
@@ -79,8 +72,10 @@ fun FrettedInstrumentDiagram(
     // Box height content-derived from the string axis alone (frets live on the width axis, which
     // is always the full available width regardless of numFrets — see positionSpacing below), so
     // this diagram's own aspect ratio needs only enough height for numStrings-1 gaps at the shared
-    // STRING_SPACING_FRACTION, padding included. aspectRatioOverride (the windowed scale-box) skips
-    // this in favor of a box height shared with ChordShapeDiagram — see CHART_MODE_ASPECT_RATIO.
+    // STRING_SPACING_FRACTION, padding included. This naturally differs by instrument (Guitar's 6
+    // strings vs. Ukulele/Bass's 4) — the caller wraps this in Modifier.animateContentSize() so
+    // that difference (and the windowed scale-box <-> ChordShapeDiagram transition) animates
+    // smoothly instead of jumping.
     val contentAspectRatio = if (numStrings > 1) {
         (1f - TOP_PAD_FRACTION - BOTTOM_PAD_FRACTION) / ((numStrings - 1) * STRING_SPACING_FRACTION)
     } else {
@@ -90,7 +85,7 @@ fun FrettedInstrumentDiagram(
     Canvas(
         modifier = modifier
             .fillMaxWidth()
-            .aspectRatio(aspectRatioOverride ?: contentAspectRatio)
+            .aspectRatio(contentAspectRatio)
             .pointerInput(tuning) {
                 detectTapGestures(
                     onPress = { offset ->
@@ -122,11 +117,9 @@ fun FrettedInstrumentDiagram(
         val fretGridLeftOffset = ((fretboardWidth - numFrets * positionSpacing) / 2f).coerceAtLeast(0f)
         fun positionX(fret: Int) = leftPad + fretGridLeftOffset + fret * positionSpacing
 
-        // A shared absolute string spacing (see STRING_SPACING_FRACTION), not
-        // fretboardHeight/(numStrings-1) — otherwise a diagram with a taller box than its own
-        // string count strictly needs (the windowed scale-box, whose height instead matches
-        // ChordShapeDiagram via aspectRatioOverride) stretches its strings apart to fill that
-        // height rather than keeping the same physical spacing as every other diagram.
+        // A shared absolute string spacing (see STRING_SPACING_FRACTION) rather than one derived
+        // from this diagram's own box height, so every diagram/instrument combination keeps the
+        // same physical string spacing instead of stretching to fill whatever height it has.
         val stringSpacing = size.width * STRING_SPACING_FRACTION
         // Row 0 of tuning.openStringMidiNotes is the lowest-pitched string (see the "Low E2 ...
         // high E4" comments on InstrumentTunings) — draw it at the bottom and the highest-pitched
@@ -134,12 +127,9 @@ fun FrettedInstrumentDiagram(
         // sees the strings, rather than the reverse.
         fun stringY(stringIndex: Int) = topPad + (numStrings - 1 - stringIndex) * stringSpacing
 
-        // The actual vertical span the strings occupy — not fretboardHeight, which is the box's
-        // full padded height and only equals this by coincidence when aspectRatioOverride is null
-        // (see contentAspectRatio above). In the windowed scale-box, box height is shared with
-        // ChordShapeDiagram (sized for Guitar's 6 strings — see CHART_MODE_ASPECT_RATIO), so a
-        // narrower instrument's strings stop well short of fretboardHeight; fret lines and inlay
-        // markers need to stop there too, not run on into the leftover blank space below.
+        // The actual vertical span the strings occupy — fret lines and inlay markers are drawn
+        // against this, not the box's full padded height, so they always end exactly at the last
+        // string rather than running past it into any padding slack.
         val stringGridHeight = if (numStrings > 1) (numStrings - 1) * stringSpacing else 0f
 
         // A shared absolute size (see NOTE_CIRCLE_RADIUS_FRACTION) rather than one derived from

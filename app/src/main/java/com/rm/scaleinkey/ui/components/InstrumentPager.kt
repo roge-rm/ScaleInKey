@@ -1,5 +1,6 @@
 package com.rm.scaleinkey.ui.components
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -36,7 +37,6 @@ import com.rm.scaleinkey.music.StringInstrumentTuning
 import com.rm.scaleinkey.music.fretMidiNote
 import com.rm.scaleinkey.music.scaleBoxWindow
 import com.rm.scaleinkey.ui.LocalSoundEngine
-import com.rm.scaleinkey.ui.components.diagrams.CHART_MODE_ASPECT_RATIO
 import com.rm.scaleinkey.ui.components.diagrams.ChordShapeDiagram
 import com.rm.scaleinkey.ui.components.diagrams.FrettedInstrumentDiagram
 import com.rm.scaleinkey.ui.components.diagrams.PianoDiagram
@@ -188,32 +188,36 @@ private fun FrettedOrChartDiagram(
     chordShape: ChordShape?,
 ) {
     val soundEngine = LocalSoundEngine.current
-    when {
-        chartViewEnabled && isChordSelection && chordShape != null -> ChordShapeDiagram(
-            shape = chordShape,
-            onFretTapped = { stringIndex, fret ->
-                soundEngine.playNote(instrument, fretMidiNote(tuning, stringIndex, fret))
-            },
-        )
-        chartViewEnabled -> FrettedInstrumentDiagram(
-            tuning = tuning.scaleBoxWindow(),
-            rootPitchClass = rootPitchClass,
-            highlightedNotes = highlightedNotes,
-            isChordSelection = isChordSelection,
-            aspectRatioOverride = CHART_MODE_ASPECT_RATIO,
-            onFretTapped = { stringIndex, fret ->
-                soundEngine.playNote(instrument, fretMidiNote(tuning, stringIndex, fret))
-            },
-        )
-        else -> FrettedInstrumentDiagram(
-            tuning = tuning,
-            rootPitchClass = rootPitchClass,
-            highlightedNotes = highlightedNotes,
-            isChordSelection = isChordSelection,
-            onFretTapped = { stringIndex, fret ->
-                soundEngine.playNote(instrument, fretMidiNote(tuning, stringIndex, fret))
-            },
-        )
+    // Each branch below now sizes its box to its own content (no more shared/forced aspect
+    // ratio), so animateContentSize animates the box smoothly across chart-mode toggles, chord
+    // select/deselect, and instrument switches instead of jumping between sizes.
+    Box(modifier = Modifier.animateContentSize()) {
+        when {
+            chartViewEnabled && isChordSelection && chordShape != null -> ChordShapeDiagram(
+                shape = chordShape,
+                onFretTapped = { stringIndex, fret ->
+                    soundEngine.playNote(instrument, fretMidiNote(tuning, stringIndex, fret))
+                },
+            )
+            chartViewEnabled -> FrettedInstrumentDiagram(
+                tuning = tuning.scaleBoxWindow(),
+                rootPitchClass = rootPitchClass,
+                highlightedNotes = highlightedNotes,
+                isChordSelection = isChordSelection,
+                onFretTapped = { stringIndex, fret ->
+                    soundEngine.playNote(instrument, fretMidiNote(tuning, stringIndex, fret))
+                },
+            )
+            else -> FrettedInstrumentDiagram(
+                tuning = tuning,
+                rootPitchClass = rootPitchClass,
+                highlightedNotes = highlightedNotes,
+                isChordSelection = isChordSelection,
+                onFretTapped = { stringIndex, fret ->
+                    soundEngine.playNote(instrument, fretMidiNote(tuning, stringIndex, fret))
+                },
+            )
+        }
     }
 }
 

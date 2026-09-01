@@ -29,6 +29,12 @@ private const val TOP_PAD_FRACTION = 0.18f // room for the open/mute (○/✕) m
 private const val BOTTOM_PAD_FRACTION = 0.04f
 private const val FRET_ROWS = 4
 
+// Box height content-derived from FRET_ROWS at the shared FRET_SPACING_FRACTION (frets run
+// vertically here — see that constant's doc), padding included. The caller wraps this diagram in
+// Modifier.animateContentSize() so switching to/from FrettedInstrumentDiagram's windowed
+// scale-box (a different natural height) animates smoothly instead of jumping.
+private const val CONTENT_ASPECT_RATIO = (1f - TOP_PAD_FRACTION - BOTTOM_PAD_FRACTION) / (FRET_ROWS * FRET_SPACING_FRACTION)
+
 /**
  * Traditional vertical songbook chord-box: one specific voicing, one mark per string (open/muted/
  * fretted-with-finger-number), unlike [FrettedInstrumentDiagram] which shows every occurrence of
@@ -58,7 +64,7 @@ fun ChordShapeDiagram(
     Canvas(
         modifier = modifier
             .fillMaxWidth()
-            .aspectRatio(CHART_MODE_ASPECT_RATIO)
+            .aspectRatio(CONTENT_ASPECT_RATIO)
             .pointerInput(shape) {
                 detectTapGestures(
                     onPress = { offset ->

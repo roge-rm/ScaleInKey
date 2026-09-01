@@ -9,28 +9,13 @@ package com.rm.scaleinkey.ui.components.diagrams
  * the tightest of any diagram/instrument combination, so that's the value adopted here (matches
  * [FrettedInstrumentDiagram]'s original, pre-unification formula for Guitar exactly: 6 strings,
  * 1.15x fudge factor, 78% of height usable after the nut/fret-label padding — `6 * 1.15 * 0.78 /
- * (12 * 5)`). A diagram with fewer strings (Ukulele/Bass) or fewer visible rows (the scale-box,
- * chord shapes) than Guitar's 6 simply doesn't fill all the space its box makes room for — see each
- * diagram's own comments for how that leftover space is anchored/left blank.
+ * (12 * 5)`). [FrettedInstrumentDiagram] sizes its own box height to exactly fit however many
+ * strings the current instrument has, so there's no leftover height there — but [ChordShapeDiagram]
+ * can't shrink its *width* the same way (it's always the full available screen width, like every
+ * other diagram in this app), so a chord using fewer strings than Guitar's 6 leaves blank margin on
+ * either side of its (centered) string columns instead.
  */
 internal const val STRING_SPACING_FRACTION = 0.0897f
-
-/**
- * Shared canvas aspect ratio (width / height) for whichever fretted-instrument diagram is showing
- * while chart mode is on: [ChordShapeDiagram] (a chord is selected) or [FrettedInstrumentDiagram]
- * windowed to [com.rm.scaleinkey.music.scaleBoxWindow] (no chord selected). Selecting or
- * deselecting a chord while chart mode is on must not visibly resize the diagram, so both diagrams
- * share this one box height rather than each computing its own. It's set to exactly the tallest
- * content either diagram ever needs to show — Guitar's 6 strings at [STRING_SPACING_FRACTION] (the
- * scale-box's tallest case, since [ChordShapeDiagram]'s fixed 4 fret rows at
- * [FRET_SPACING_FRACTION] need noticeably less height) — so nothing overflows the box, for any
- * instrument or chord shape. This is numerically identical to [FrettedInstrumentDiagram]'s own
- * (unwindowed) Guitar aspect ratio, since Guitar's scale-box content need is exactly its full neck
- * view's content need with fewer frets shown (frets don't affect box height — see
- * [FRET_SPACING_FRACTION]'s doc). Narrower instruments/shorter content simply leave blank space
- * below their content rather than stretching to fill this height.
- */
-internal const val CHART_MODE_ASPECT_RATIO = 12f / (6f * 1.15f)
 
 /**
  * Width of one fret, as a fraction of canvas width, shared by every fretted-instrument diagram:
