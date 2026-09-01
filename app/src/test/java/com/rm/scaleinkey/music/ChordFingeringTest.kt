@@ -35,6 +35,21 @@ class ChordFingeringTest {
                                     assertTrue("$context: sounded pitch class $pc not a chord tone", pc in tonePcs)
                                 }
                             }
+                            // A finger can only cover more than one string as an actual barre —
+                            // which requires those strings to be pressed at the exact same fret.
+                            // Two different frets sharing a finger number would mean one finger
+                            // reaching two places on the neck at once, which is impossible.
+                            shape.marks.filter { it.finger != null }
+                                .groupBy { it.finger }
+                                .forEach { (finger, marks) ->
+                                    val frets = marks.map { it.fret }.distinct()
+                                    assertEquals(
+                                        "$context: finger $finger shared across strings " +
+                                            "${marks.map { it.stringIndex }} at different frets $frets",
+                                        1,
+                                        frets.size,
+                                    )
+                                }
                             val soundedPcs = shape.marks.mapNotNull { it.pitchClass }.toSet()
                             val coverage = soundedPcs.count { it in tonePcs }
                             val requiredCoverage = minOf(3, tonePcs.size)
