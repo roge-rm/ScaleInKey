@@ -21,6 +21,16 @@ class InstrumentTuningTest {
     }
 
     @Test
+    fun `5-string bass tuning adds a low B below the standard 4-string tuning`() {
+        // B0, E1, A1, D2, G2 -> the same E-A-D-G as 4-string BASS with a low B string added below.
+        assertEquals(listOf(11, 4, 9, 2, 7), InstrumentTunings.BASS_5.openStringPitchClasses)
+        assertEquals(
+            InstrumentTunings.BASS.openStringMidiNotes,
+            InstrumentTunings.BASS_5.openStringMidiNotes.drop(1),
+        )
+    }
+
+    @Test
     fun `fretPitchClass wraps around the octave`() {
         // Low E string, 3rd fret -> G
         assertEquals(7, fretPitchClass(InstrumentTunings.GUITAR, stringIndex = 0, fret = 3))

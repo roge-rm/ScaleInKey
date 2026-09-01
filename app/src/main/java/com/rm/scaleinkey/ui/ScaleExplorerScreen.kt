@@ -86,7 +86,10 @@ fun ScaleExplorerScreen(
                             onChartViewChanged = { state.chartViewEnabled = it },
                             guitarChordShape = state.guitarChordShape,
                             ukuleleChordShape = state.ukuleleChordShape,
+                            bassTuning = state.bassTuning,
                             bassRootShape = state.bassRootShape,
+                            bassFiveStringEnabled = state.bassFiveStringEnabled,
+                            onBassFiveStringChanged = { state.bassFiveStringEnabled = it },
                             modifier = Modifier.padding(bottom = 96.dp),
                         )
                     }

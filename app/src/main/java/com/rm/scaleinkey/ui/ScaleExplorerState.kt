@@ -20,6 +20,7 @@ import com.rm.scaleinkey.music.InstrumentType
 import com.rm.scaleinkey.music.Note
 import com.rm.scaleinkey.music.Scale
 import com.rm.scaleinkey.music.ScaleType
+import com.rm.scaleinkey.music.StringInstrumentTuning
 import com.rm.scaleinkey.music.buildDiatonicChords
 import com.rm.scaleinkey.music.display
 import com.rm.scaleinkey.music.findBassRootPosition
@@ -31,6 +32,7 @@ class ScaleExplorerState(
     selectedDegreeState: MutableState<Int?>,
     instrumentState: MutableState<InstrumentType>,
     chartViewEnabledState: MutableState<Boolean>,
+    bassFiveStringEnabledState: MutableState<Boolean>,
     private val voicingByDegree: SnapshotStateMap<Int, ChordVoicing>,
 ) {
     var rootIndex by rootIndexState
@@ -38,6 +40,10 @@ class ScaleExplorerState(
     var selectedDegree by selectedDegreeState
     var instrument by instrumentState
     var chartViewEnabled by chartViewEnabledState
+    var bassFiveStringEnabled by bassFiveStringEnabledState
+
+    val bassTuning: StringInstrumentTuning
+        get() = if (bassFiveStringEnabled) InstrumentTunings.BASS_5 else InstrumentTunings.BASS
 
     val root: Note get() = CANONICAL_ROOTS[rootIndex]
     val scale: Scale get() = Scale(root, scaleType)
@@ -67,7 +73,7 @@ class ScaleExplorerState(
         }
 
     val bassRootShape: ChordShape?
-        get() = selectedChord?.let { chord -> findBassRootPosition(InstrumentTunings.BASS, chord.root.pitchClass) }
+        get() = selectedChord?.let { chord -> findBassRootPosition(bassTuning, chord.root.pitchClass) }
 
     fun onRootSelected(index: Int) {
         rootIndex = index
@@ -102,6 +108,7 @@ fun rememberScaleExplorerState(): ScaleExplorerState {
     val selectedDegreeState = rememberSaveable { mutableStateOf<Int?>(null) }
     val instrumentState = rememberSaveable { mutableStateOf(InstrumentType.PIANO) }
     val chartViewEnabledState = rememberSaveable { mutableStateOf(false) }
+    val bassFiveStringEnabledState = rememberSaveable { mutableStateOf(false) }
     val voicingByDegree = remember { mutableStateMapOf<Int, ChordVoicing>() }
 
     return remember {
@@ -111,6 +118,7 @@ fun rememberScaleExplorerState(): ScaleExplorerState {
             selectedDegreeState,
             instrumentState,
             chartViewEnabledState,
+            bassFiveStringEnabledState,
             voicingByDegree,
         )
     }
