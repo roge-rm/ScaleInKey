@@ -112,7 +112,10 @@ fun FrettedInstrumentDiagram(
         // sees the strings, rather than the reverse.
         fun stringY(stringIndex: Int) = topPad + (numStrings - 1 - stringIndex) * stringSpacing
 
-        val markerRadius = minOf(positionSpacing, stringSpacing) * 0.34f
+        // A shared absolute size (see NOTE_CIRCLE_RADIUS_FRACTION) rather than one derived from
+        // this diagram's own, more generous per-cell space — otherwise the windowed scale-box
+        // (only 4 frets wide) draws visibly larger circles than the full 12-fret neck view.
+        val markerRadius = size.width * NOTE_CIRCLE_RADIUS_FRACTION
 
         fun drawCenteredText(text: String, center: Offset, fontSizePx: Float, color: Color, bold: Boolean = false) {
             val style = TextStyle(
