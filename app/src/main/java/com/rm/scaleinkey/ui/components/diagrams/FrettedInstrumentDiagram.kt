@@ -121,17 +121,20 @@ fun FrettedInstrumentDiagram(
         val topPad = size.width * TOP_PAD_FRACTION * contentScale
         val bottomPad = size.width * BOTTOM_PAD_FRACTION * contentScale
 
-        val fretboardWidth = size.width - leftPad - rightPad
-
-        // A shared absolute fret width (see FRET_SPACING_FRACTION), not fretboardWidth/numFrets —
-        // otherwise the windowed scale-box (only 4 frets) spreads those 4 frets across the full
-        // available width, spacing them much further apart than the full 12-fret neck view. When
-        // numFrets < the neck view's 12, the drawn grid is centered in the leftover width rather
-        // than reaching the right edge — see the string-line drawing below, which stops at the
-        // last actual fret rather than continuing into that unused space.
+        // A shared absolute fret width (see FRET_SPACING_FRACTION), not (width-leftPad-rightPad)/
+        // numFrets — otherwise the windowed scale-box (only 4 frets) spreads those 4 frets across
+        // the full available width, spacing them much further apart than the full 12-fret neck
+        // view. When numFrets < the neck view's 12, the drawn grid is centered in the *whole* box
+        // width instead — not just the leftPad-to-(width-rightPad) span, which would skew the grid
+        // toward whichever side has the smaller of the two (asymmetric, label-reserving) pads —
+        // floored at leftPad and ceilinged at (width - rightPad - gridContentWidth) so it never
+        // creeps into either margin. For the full 12-fret neck view this floor is exactly what's
+        // reached (content fills the space), so that view is unchanged from before.
         val positionSpacing = size.width * FRET_SPACING_FRACTION * contentScale
-        val fretGridLeftOffset = ((fretboardWidth - numFrets * positionSpacing) / 2f).coerceAtLeast(0f)
-        fun positionX(fret: Int) = leftPad + fretGridLeftOffset + fret * positionSpacing
+        val gridContentWidth = numFrets * positionSpacing
+        val maxPositionStart = (size.width - rightPad - gridContentWidth).coerceAtLeast(leftPad)
+        val positionStart = ((size.width - gridContentWidth) / 2f).coerceIn(leftPad, maxPositionStart)
+        fun positionX(fret: Int) = positionStart + fret * positionSpacing
 
         // A shared absolute string spacing (see STRING_SPACING_FRACTION) rather than one derived
         // from this diagram's own box height, so every diagram/instrument combination keeps the
@@ -299,12 +302,13 @@ private fun hitTestFret(
     val topPad = width * TOP_PAD_FRACTION * contentScale
     val bottomPad = width * BOTTOM_PAD_FRACTION * contentScale
 
-    val fretboardWidth = width - leftPad - rightPad
     val fretboardHeight = height - topPad - bottomPad
-    if (fretboardWidth <= 0f || fretboardHeight <= 0f) return null
+    if (width - leftPad - rightPad <= 0f || fretboardHeight <= 0f) return null
 
     val positionSpacing = width * FRET_SPACING_FRACTION * contentScale
-    val fretGridLeftOffset = ((fretboardWidth - numFrets * positionSpacing) / 2f).coerceAtLeast(0f)
+    val gridContentWidth = numFrets * positionSpacing
+    val maxPositionStart = (width - rightPad - gridContentWidth).coerceAtLeast(leftPad)
+    val positionStart = ((width - gridContentWidth) / 2f).coerceIn(leftPad, maxPositionStart)
     val stringSpacing = width * STRING_SPACING_FRACTION * contentScale
 
     val stringIndex = if (numStrings > 1) {
@@ -316,6 +320,6 @@ private fun hitTestFret(
     } else {
         0
     }
-    val fret = ((x - leftPad - fretGridLeftOffset) / positionSpacing).roundToInt().coerceIn(0, numFrets)
+    val fret = ((x - positionStart) / positionSpacing).roundToInt().coerceIn(0, numFrets)
     return stringIndex to fret
 }
