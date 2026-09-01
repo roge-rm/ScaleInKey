@@ -111,7 +111,6 @@ fun FrettedInstrumentDiagram(
         val bottomPad = size.height * BOTTOM_PAD_FRACTION
 
         val fretboardWidth = size.width - leftPad - rightPad
-        val fretboardHeight = size.height - topPad - bottomPad
 
         // A shared absolute fret width (see FRET_SPACING_FRACTION), not fretboardWidth/numFrets —
         // otherwise the windowed scale-box (only 4 frets) spreads those 4 frets across the full
@@ -134,6 +133,14 @@ fun FrettedInstrumentDiagram(
         // string at the top, matching how a player looking down at their own instrument's neck
         // sees the strings, rather than the reverse.
         fun stringY(stringIndex: Int) = topPad + (numStrings - 1 - stringIndex) * stringSpacing
+
+        // The actual vertical span the strings occupy — not fretboardHeight, which is the box's
+        // full padded height and only equals this by coincidence when aspectRatioOverride is null
+        // (see contentAspectRatio above). In the windowed scale-box, box height is shared with
+        // ChordShapeDiagram (sized for Guitar's 6 strings — see CHART_MODE_ASPECT_RATIO), so a
+        // narrower instrument's strings stop well short of fretboardHeight; fret lines and inlay
+        // markers need to stop there too, not run on into the leftover blank space below.
+        val stringGridHeight = if (numStrings > 1) (numStrings - 1) * stringSpacing else 0f
 
         // A shared absolute size (see NOTE_CIRCLE_RADIUS_FRACTION) rather than one derived from
         // this diagram's own, more generous per-cell space — otherwise the windowed scale-box
@@ -162,7 +169,7 @@ fun FrettedInstrumentDiagram(
             val midX = positionX(f) - positionSpacing / 2f
             when {
                 f == DOUBLE_MARKER_FRET -> {
-                    val third = fretboardHeight / 3f
+                    val third = stringGridHeight / 3f
                     drawCircle(color = markerColor, radius = markerRadius * 0.6f, center = Offset(midX, topPad + third))
                     drawCircle(color = markerColor, radius = markerRadius * 0.6f, center = Offset(midX, topPad + 2 * third))
                 }
@@ -170,7 +177,7 @@ fun FrettedInstrumentDiagram(
                     drawCircle(
                         color = markerColor,
                         radius = markerRadius * 0.6f,
-                        center = Offset(midX, topPad + fretboardHeight / 2f),
+                        center = Offset(midX, topPad + stringGridHeight / 2f),
                     )
                 }
             }
@@ -202,13 +209,16 @@ fun FrettedInstrumentDiagram(
             drawLine(
                 color = if (f == 0) nutColor else fretColor,
                 start = Offset(x, topPad),
-                end = Offset(x, topPad + fretboardHeight),
+                end = Offset(x, topPad + stringGridHeight),
                 strokeWidth = if (f == 0) 6f else 2f,
             )
         }
 
-        // Fret number guide row.
-        val fretLabelY = topPad + fretboardHeight + bottomPad * 0.55f
+        // Fret number guide row, anchored just under the strings themselves — not fretboardHeight,
+        // which would sit at the bottom of the box's full padded height, floating below the actual
+        // grid whenever the box is taller than this instrument's strings need (see
+        // stringGridHeight's doc above).
+        val fretLabelY = topPad + stringGridHeight + bottomPad * 0.55f
         val fretLabelFontSize = size.width * DIAGRAM_LABEL_FONT_FRACTION
         for (f in 0..numFrets) {
             val x = if (f == 0) positionX(f) else positionX(f) - positionSpacing / 2f
