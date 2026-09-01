@@ -51,4 +51,33 @@ class DiatonicChordTest {
         assertEquals("F7", chords[3].symbol())
         assertEquals(ChordQuality.DOMINANT7, chords[3].quality)
     }
+
+    @Test
+    fun `C Phrygian dominant I is dominant, bii is major7, v is minor7`() {
+        val chords = buildDiatonicChords(Scale(Note(Letter.C, 0), ScaleType.PHRYGIAN_DOMINANT))
+        assertEquals("C7", chords[0].symbol())
+        assertEquals(ChordQuality.DOMINANT7, chords[0].quality)
+        assertEquals("D♭maj7", chords[1].symbol())
+        assertEquals(ChordQuality.MAJOR7, chords[1].quality)
+        assertEquals("B♭m7", chords[6].symbol())
+        assertEquals(ChordQuality.MINOR7, chords[6].quality)
+    }
+
+    @Test
+    fun `C Lydian augmented I is augmented major7, ii is dominant`() {
+        val chords = buildDiatonicChords(Scale(Note(Letter.C, 0), ScaleType.LYDIAN_AUGMENTED))
+        assertEquals("Cmaj7♯5", chords[0].symbol())
+        assertEquals(ChordQuality.AUGMENTED_MAJOR7, chords[0].quality)
+        assertEquals("D7", chords[1].symbol())
+        assertEquals(ChordQuality.DOMINANT7, chords[1].quality)
+    }
+
+    @Test
+    fun `C Locrian natural 2 i is half-diminished, IV is minor7`() {
+        val chords = buildDiatonicChords(Scale(Note(Letter.C, 0), ScaleType.LOCRIAN_NATURAL_2))
+        assertEquals("Cm7♭5", chords[0].symbol())
+        assertEquals(ChordQuality.HALF_DIMINISHED7, chords[0].quality)
+        assertEquals("Fm7", chords[3].symbol())
+        assertEquals(ChordQuality.MINOR7, chords[3].quality)
+    }
 }
