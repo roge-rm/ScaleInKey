@@ -99,10 +99,15 @@ fun FrettedInstrumentDiagram(
         val topPad = size.height * TOP_PAD_FRACTION
         val bottomPad = size.height * BOTTOM_PAD_FRACTION
 
-        val fretboardWidth = size.width - leftPad - rightPad
         val fretboardHeight = size.height - topPad - bottomPad
 
-        val positionSpacing = fretboardWidth / numFrets
+        // A shared absolute fret width (see FRET_SPACING_FRACTION), not fretboardWidth/numFrets —
+        // otherwise the windowed scale-box (only 4 frets) spreads those 4 frets across the full
+        // available width, spacing them much further apart than the full 12-fret neck view. When
+        // numFrets < the neck view's 12, the drawn grid simply doesn't reach the right edge — see
+        // the string-line drawing below, which stops at the last actual fret rather than
+        // continuing into that unused space.
+        val positionSpacing = size.width * FRET_SPACING_FRACTION
         fun positionX(fret: Int) = leftPad + fret * positionSpacing
 
         val stringSpacing = if (numStrings > 1) fretboardHeight / (numStrings - 1) else 0f
@@ -153,19 +158,21 @@ fun FrettedInstrumentDiagram(
             }
         }
 
-        // Strings.
+        // Strings — end exactly at the last drawn fret (positionX(numFrets)), not the canvas edge,
+        // so a windowed view (numFrets < 12) doesn't draw a string trailing off into blank space
+        // past where the grid itself stops.
         for (s in 0 until numStrings) {
             val y = stringY(s)
             drawLine(
                 color = stringColor,
                 start = Offset(leftPad, y),
-                end = Offset(size.width - rightPad, y),
+                end = Offset(positionX(numFrets), y),
                 strokeWidth = 2.5f,
             )
             drawCenteredText(
                 text = stringLabels[s],
                 center = Offset(leftPad * 0.4f, y),
-                fontSizePx = stringSpacing.coerceAtMost(fretboardHeight) * 0.32f,
+                fontSizePx = size.width * DIAGRAM_LABEL_FONT_FRACTION,
                 color = labelTextColor,
                 bold = true,
             )
@@ -184,7 +191,7 @@ fun FrettedInstrumentDiagram(
 
         // Fret number guide row.
         val fretLabelY = topPad + fretboardHeight + bottomPad * 0.55f
-        val fretLabelFontSize = bottomPad * 0.32f
+        val fretLabelFontSize = size.width * DIAGRAM_LABEL_FONT_FRACTION
         for (f in 0..numFrets) {
             val x = if (f == 0) positionX(f) else positionX(f) - positionSpacing / 2f
             val isMarkerFret = f == DOUBLE_MARKER_FRET || f in MARKER_FRETS
@@ -261,7 +268,7 @@ private fun hitTestFret(
     val fretboardHeight = height - topPad - bottomPad
     if (fretboardWidth <= 0f || fretboardHeight <= 0f) return null
 
-    val positionSpacing = fretboardWidth / numFrets
+    val positionSpacing = width * FRET_SPACING_FRACTION
     val stringSpacing = if (numStrings > 1) fretboardHeight / (numStrings - 1) else 0f
 
     val stringIndex = if (numStrings > 1) {

@@ -87,7 +87,6 @@ fun ChordShapeDiagram(
         val bottomPad = size.height * BOTTOM_PAD_FRACTION
 
         val gridWidth = size.width - leftPad - rightPad
-        val gridHeight = size.height - topPad - bottomPad
 
         // Always spaced as if there were REFERENCE_STRINGS strings, then centered — see the
         // constant's doc comment above for why.
@@ -95,7 +94,11 @@ fun ChordShapeDiagram(
         val gridLeftOffset = (gridWidth - stringSpacing * (numStrings - 1)) / 2f
         fun stringX(stringIndex: Int) = leftPad + gridLeftOffset + stringIndex * stringSpacing
 
-        val rowSpacing = gridHeight / FRET_ROWS
+        // A shared absolute row height (see FRET_SPACING_FRACTION), not gridHeight/FRET_ROWS —
+        // otherwise this grid's 4 rows fill the whole available height, taller per row than the
+        // full neck view's per-fret width. The grid simply doesn't reach the bottom of the canvas
+        // (row 0 stays anchored at topPad, like a real chord chart's nut sitting near the top).
+        val rowSpacing = size.width * FRET_SPACING_FRACTION
         fun rowY(row: Int) = topPad + row * rowSpacing // row 0 = nut/position line, 1..FRET_ROWS = frets
 
         // Same shared absolute size FrettedInstrumentDiagram uses (see NOTE_CIRCLE_RADIUS_FRACTION)
@@ -121,7 +124,7 @@ fun ChordShapeDiagram(
 
         // Open/mute markers above the nut.
         val markerY = topPad * 0.5f
-        val markerFontSize = topPad * 0.5f
+        val markerFontSize = size.width * DIAGRAM_LABEL_FONT_FRACTION
         for (s in 0 until numStrings) {
             val fret = shape.marks[s].fret
             val symbol = when (fret) {
@@ -160,7 +163,7 @@ fun ChordShapeDiagram(
             drawCenteredText(
                 text = "${shape.startFret + 1}fr",
                 center = Offset(gridLeft - stringSpacing * 0.6f, rowY(0) + rowSpacing / 2f),
-                fontSizePx = rowSpacing * 0.28f,
+                fontSizePx = size.width * DIAGRAM_LABEL_FONT_FRACTION,
                 color = labelTextColor,
                 bold = true,
             )
