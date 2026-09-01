@@ -6,10 +6,13 @@ This is an Android (8.0 or higher) app to show you the notes and chords in a giv
 
 ## Features
 
-- **20 scale types** across five categories — the 7 diatonic modes, Harmonic/Melodic Minor,
-  Major/Minor Pentatonic, Major/Minor Blues, seven World/Exotic scales (Hungarian Minor,
-  Byzantine, Persian, Hirajoshi, In Sen, Iwato, Enigmatic), and two Jazz melodic-minor modes
-  (Altered, Lydian Dominant) — with correct enharmonic spelling in every key.
+- **33 scale types** across six categories — the 7 diatonic modes, Harmonic/Melodic Minor,
+  five Pentatonic & Blues scales (Major/Minor Pentatonic, Major/Minor Blues, Egyptian
+  Pentatonic), ten World/Exotic scales (Hungarian Minor, Byzantine, Persian, Hirajoshi, In Sen,
+  Iwato, Enigmatic, Phrygian Dominant, Neapolitan Minor, Neapolitan Major), six Jazz scales
+  (Altered, Lydian Dominant, Lydian Augmented, Locrian ♮2/Half-Diminished, Bebop Dominant,
+  Bebop Major), and three Symmetric scales (Whole Tone, Diminished Whole-Half, Diminished
+  Half-Whole) — with correct enharmonic spelling in every key.
 - **Diatonic chords** for every scale that supports them, shown as triads by default with a
   per-chord toggle to the 7th-chord voicing, including the rarer harmonic/melodic-minor chord
   qualities (minor-major7, augmented-major7, fully-diminished7, half-diminished7).
