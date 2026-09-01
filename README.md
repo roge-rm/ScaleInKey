@@ -1,6 +1,6 @@
 # ScaleInKey
 
-This is an Android (14 or higher) app to show you the notes and chords in a given mode or scale. The app store is full of paid or ad-filled apps that do this (and more! or less!) so I decided to test claude out and release something for free. Cheers.
+This is an Android (8.0 or higher) app to show you the notes and chords in a given mode or scale. The app store is full of paid or ad-filled apps that do this (and more! or less!) so I decided to test claude out and release something for free. Cheers.
 
 <img src="docs/screenshot-main.png" alt="ScaleInKey main screen: C Ionian scale with diatonic chords and the Guitar fingering-chart diagram for the I chord" width="360" />
 
@@ -40,7 +40,7 @@ This is an Android (14 or higher) app to show you the notes and chords in a give
   ```
   export JAVA_HOME=/path/to/android-studio/jbr
   ```
-- minSdk 34 / targetSdk 37.
+- minSdk 26 / targetSdk 37.
 
 ## Building & testing
 
