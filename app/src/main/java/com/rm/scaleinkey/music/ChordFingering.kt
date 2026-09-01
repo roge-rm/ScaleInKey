@@ -27,7 +27,38 @@ private const val WINDOW_FRETS = 4
 private fun allowedFretsFor(startFret: Int): List<Int> =
     if (startFret == 0) listOf(0, 1, 2, 3, 4) else (startFret + 1..startFret + WINDOW_FRETS).toList()
 
-private fun fingerFor(fret: Int, startFret: Int): Int? = if (fret == 0) null else fret - startFret
+/**
+ * Assigns a finger (1-4) to each fretted (non-open, non-muted) string in [frettedByString] —
+ * pairs of (stringIndex, fret). One finger per string in general: sorting by fret then string
+ * index and numbering 1, 2, 3... reliably reproduces real published fingerings for every shape in
+ * KnownChordShapes.kt (verified against several standard chord charts — e.g. open G's low-E=2,
+ * A=1, high-e=3, not the "same fret number = same finger" a naive `fret - startFret` formula
+ * would produce, which double-books a finger across strings with open strings ringing between
+ * them — physically impossible outside an actual barre).
+ *
+ * A real barre — one finger flat across several strings — is only used when there physically
+ * aren't enough fingers otherwise: more than 4 simultaneously fretted strings, which can only
+ * happen for a genuine barre-chord shape from the algorithmic fallback (every hand-curated open
+ * shape here fits within 4 fretted notes). In that case every string is grouped by its fret and
+ * each *distinct* fret gets its own finger, ascending — exactly how a real moveable barre chord
+ * is played: one finger lies flat across every string sounding at a given fret (however many, and
+ * regardless of other, higher-fretted strings physically "in between" them — the flat finger
+ * still reaches past those), while the remaining fingers each take one higher fret. The fret span
+ * is already capped at 3 (see scoreCombo's hard filter), so at most 4 distinct frets can ever
+ * appear — never more fingers than exist.
+ */
+private fun assignFingers(frettedByString: List<Pair<Int, Int>>): Map<Int, Int> {
+    if (frettedByString.isEmpty()) return emptyMap()
+    if (frettedByString.size <= 4) {
+        val sorted = frettedByString.sortedWith(compareBy({ it.second }, { it.first }))
+        return sorted.mapIndexed { i, (stringIndex, _) -> stringIndex to (i + 1) }.toMap()
+    }
+    val result = mutableMapOf<Int, Int>()
+    frettedByString.groupBy { it.second }.toSortedMap().values.forEachIndexed { i, group ->
+        group.forEach { (stringIndex, _) -> result[stringIndex] = i + 1 }
+    }
+    return result
+}
 
 /**
  * Finds a playable near-the-nut voicing of [chordTones] on [tuning], picking one fret (or mute)
@@ -61,13 +92,16 @@ fun findChordShape(tuning: StringInstrumentTuning, chordTones: List<Note>, rootP
 private fun buildShapeFromFrets(tuning: StringInstrumentTuning, frets: List<Int?>, rootPitchClass: Int): ChordShape {
     val minFretted = frets.filterNotNull().filter { it > 0 }.minOrNull() ?: 0
     val startFret = if (minFretted <= WINDOW_FRETS) 0 else minFretted - 1
+    val fingerByString = assignFingers(
+        frets.mapIndexedNotNull { s, fret -> if (fret != null && fret > 0) s to fret else null }
+    )
     return ChordShape(
         marks = frets.mapIndexed { s, fret ->
             if (fret == null) {
                 StringMark(s, null, null, isRoot = false, finger = null)
             } else {
                 val pitchClass = fretPitchClass(tuning, s, fret)
-                StringMark(s, fret, pitchClass, isRoot = pitchClass == rootPitchClass, finger = fingerFor(fret, startFret))
+                StringMark(s, fret, pitchClass, isRoot = pitchClass == rootPitchClass, finger = fingerByString[s])
             }
         },
         startFret = startFret,
@@ -116,6 +150,9 @@ private fun bestShapeInWindow(
     recurse(0, mutableListOf())
 
     val chosen = best ?: return null
+    val fingerByString = assignFingers(
+        chosen.mapIndexedNotNull { s, fret -> if (fret != null && fret > 0) s to fret else null }
+    )
     return ChordShape(
         marks = (0 until numStrings).map { s ->
             val fret = chosen[s]
@@ -123,7 +160,7 @@ private fun bestShapeInWindow(
                 StringMark(s, null, null, isRoot = false, finger = null)
             } else {
                 val pitchClass = fretPitchClass(tuning, s, fret)
-                StringMark(s, fret, pitchClass, isRoot = pitchClass == rootPitchClass, finger = fingerFor(fret, startFret))
+                StringMark(s, fret, pitchClass, isRoot = pitchClass == rootPitchClass, finger = fingerByString[s])
             }
         },
         startFret = startFret,
@@ -175,10 +212,11 @@ fun findBassRootPosition(tuning: StringInstrumentTuning, rootPitchClass: Int): C
 
         val chosen = matches.minBy { s -> fretMidiNote(tuning, s, fret) }
         val startFret = if (fret <= WINDOW_FRETS) 0 else fret - 1
+        val finger = if (fret == 0) null else assignFingers(listOf(chosen to fret))[chosen]
         return ChordShape(
             marks = (0 until numStrings).map { s ->
                 if (s == chosen) {
-                    StringMark(s, fret, rootPitchClass, isRoot = true, finger = fingerFor(fret, startFret))
+                    StringMark(s, fret, rootPitchClass, isRoot = true, finger = finger)
                 } else {
                     StringMark(s, null, null, isRoot = false, finger = null)
                 }
