@@ -35,10 +35,11 @@ private const val BOTTOM_PAD_FRACTION = 0.03f
 private const val FRET_ROWS = 4
 
 // Box height content-derived from FRET_ROWS at the shared FRET_SPACING_FRACTION (frets run
-// vertically here — see that constant's doc), padding included. The caller wraps this diagram in
-// Modifier.animateContentSize() so switching to/from FrettedInstrumentDiagram's windowed
-// scale-box (a different natural height) animates smoothly instead of jumping.
-private const val CONTENT_ASPECT_RATIO = 1f / (TOP_PAD_FRACTION + BOTTOM_PAD_FRACTION + FRET_ROWS * FRET_SPACING_FRACTION)
+// vertically here — see that constant's doc), scaled by CHART_MODE_SCALE and padding included.
+// The caller wraps this diagram in Modifier.animateContentSize() so switching to/from
+// FrettedInstrumentDiagram's windowed scale-box (a different natural height) animates smoothly
+// instead of jumping.
+private const val CONTENT_ASPECT_RATIO = 1f / (CHART_MODE_SCALE * (TOP_PAD_FRACTION + BOTTOM_PAD_FRACTION + FRET_ROWS * FRET_SPACING_FRACTION))
 
 /**
  * Traditional vertical songbook chord-box: one specific voicing, one mark per string (open/muted/
@@ -85,32 +86,35 @@ fun ChordShapeDiagram(
                 )
             },
     ) {
-        val leftPad = size.width * LEFT_PAD_FRACTION
-        val rightPad = size.width * RIGHT_PAD_FRACTION
-        val topPad = size.width * TOP_PAD_FRACTION
-        val bottomPad = size.width * BOTTOM_PAD_FRACTION
+        val leftPad = size.width * LEFT_PAD_FRACTION * CHART_MODE_SCALE
+        val rightPad = size.width * RIGHT_PAD_FRACTION * CHART_MODE_SCALE
+        val topPad = size.width * TOP_PAD_FRACTION * CHART_MODE_SCALE
+        val bottomPad = size.width * BOTTOM_PAD_FRACTION * CHART_MODE_SCALE
 
         val gridWidth = size.width - leftPad - rightPad
 
-        // A shared absolute string spacing (see STRING_SPACING_FRACTION), not
-        // gridWidth/(numStrings-1) — otherwise this diagram's own generous grid width stretches
-        // strings apart further than FrettedInstrumentDiagram's neck/scale-box views. Centered in
-        // the leftover width, same as a narrower instrument's fewer strings always were.
-        val stringSpacing = size.width * STRING_SPACING_FRACTION
+        // A shared absolute string spacing (see STRING_SPACING_FRACTION), scaled by
+        // CHART_MODE_SCALE — see that constant's doc. Not gridWidth/(numStrings-1), otherwise this
+        // diagram's own generous grid width stretches strings apart further than
+        // FrettedInstrumentDiagram's neck/scale-box views. Centered in the leftover width, same as
+        // a narrower instrument's fewer strings always were.
+        val stringSpacing = size.width * STRING_SPACING_FRACTION * CHART_MODE_SCALE
         val gridLeftOffset = ((gridWidth - stringSpacing * (numStrings - 1)) / 2f).coerceAtLeast(0f)
         fun stringX(stringIndex: Int) = leftPad + gridLeftOffset + stringIndex * stringSpacing
 
-        // A shared absolute row height (see FRET_SPACING_FRACTION), not gridHeight/FRET_ROWS —
-        // otherwise this grid's 4 rows fill the whole available height, taller per row than the
-        // full neck view's per-fret width. The grid simply doesn't reach the bottom of the canvas
-        // (row 0 stays anchored at topPad, like a real chord chart's nut sitting near the top).
-        val rowSpacing = size.width * FRET_SPACING_FRACTION
+        // A shared absolute row height (see FRET_SPACING_FRACTION), scaled by CHART_MODE_SCALE —
+        // not gridHeight/FRET_ROWS, otherwise this grid's 4 rows fill the whole available height,
+        // taller per row than the full neck view's per-fret width. The grid simply doesn't reach
+        // the bottom of the canvas (row 0 stays anchored at topPad, like a real chord chart's nut
+        // sitting near the top).
+        val rowSpacing = size.width * FRET_SPACING_FRACTION * CHART_MODE_SCALE
         fun rowY(row: Int) = topPad + row * rowSpacing // row 0 = nut/position line, 1..FRET_ROWS = frets
 
-        // Same shared absolute size FrettedInstrumentDiagram uses (see NOTE_CIRCLE_RADIUS_FRACTION)
-        // rather than one derived from this diagram's own per-cell space, so a chord shape's dots
-        // match the neck/scale-box views' size instead of coming out larger.
-        val dotRadius = size.width * NOTE_CIRCLE_RADIUS_FRACTION
+        // Same shared absolute size FrettedInstrumentDiagram uses (see NOTE_CIRCLE_RADIUS_FRACTION),
+        // scaled by CHART_MODE_SCALE — rather than one derived from this diagram's own per-cell
+        // space, so a chord shape's dots match the neck/scale-box views' size (times the shared
+        // chart-mode scale-up) instead of coming out an unrelated size.
+        val dotRadius = size.width * NOTE_CIRCLE_RADIUS_FRACTION * CHART_MODE_SCALE
 
         fun drawCenteredText(text: String, center: Offset, fontSizePx: Float, color: Color, bold: Boolean = false) {
             val style = TextStyle(
@@ -130,7 +134,7 @@ fun ChordShapeDiagram(
 
         // Open/mute markers above the nut.
         val markerY = topPad * 0.5f
-        val markerFontSize = size.width * DIAGRAM_LABEL_FONT_FRACTION
+        val markerFontSize = size.width * DIAGRAM_LABEL_FONT_FRACTION * CHART_MODE_SCALE
         for (s in 0 until numStrings) {
             val fret = shape.marks[s].fret
             val symbol = when (fret) {
@@ -169,7 +173,7 @@ fun ChordShapeDiagram(
             drawCenteredText(
                 text = "${shape.startFret + 1}fr",
                 center = Offset(gridLeft - stringSpacing * 0.6f, rowY(0) + rowSpacing / 2f),
-                fontSizePx = size.width * DIAGRAM_LABEL_FONT_FRACTION,
+                fontSizePx = size.width * DIAGRAM_LABEL_FONT_FRACTION * CHART_MODE_SCALE,
                 color = labelTextColor,
                 bold = true,
             )
@@ -238,12 +242,12 @@ fun ChordShapeDiagram(
 
 /** Mirrors the string-spacing geometry above. Null only when the canvas has no real width yet. */
 private fun hitTestChordShapeString(x: Float, width: Float, numStrings: Int): Int? {
-    val leftPad = width * LEFT_PAD_FRACTION
-    val rightPad = width * RIGHT_PAD_FRACTION
+    val leftPad = width * LEFT_PAD_FRACTION * CHART_MODE_SCALE
+    val rightPad = width * RIGHT_PAD_FRACTION * CHART_MODE_SCALE
     val gridWidth = width - leftPad - rightPad
     if (gridWidth <= 0f) return null
     if (numStrings <= 1) return 0
-    val stringSpacing = width * STRING_SPACING_FRACTION
+    val stringSpacing = width * STRING_SPACING_FRACTION * CHART_MODE_SCALE
     val gridLeftOffset = ((gridWidth - stringSpacing * (numStrings - 1)) / 2f).coerceAtLeast(0f)
     return ((x - leftPad - gridLeftOffset) / stringSpacing).roundToInt().coerceIn(0, numStrings - 1)
 }

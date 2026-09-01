@@ -51,6 +51,10 @@ fun FrettedInstrumentDiagram(
     rootPitchClass: Int,
     highlightedNotes: List<Note>,
     isChordSelection: Boolean,
+    // Uniform multiplier on every size fraction below (spacing, note-circle radius, label text,
+    // padding) — see CHART_MODE_SCALE's doc. 1f (the default) is this diagram's own original
+    // scale, used for the full neck view; the windowed scale-box passes CHART_MODE_SCALE instead.
+    contentScale: Float = 1f,
     onFretTapped: (stringIndex: Int, fret: Int) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier,
 ) {
@@ -86,7 +90,10 @@ fun FrettedInstrumentDiagram(
     // that difference (and the windowed scale-box <-> ChordShapeDiagram transition) animates
     // smoothly instead of jumping.
     val contentAspectRatio = if (numStrings > 1) {
-        1f / (TOP_PAD_FRACTION + BOTTOM_PAD_FRACTION + (numStrings - 1) * STRING_SPACING_FRACTION)
+        // contentScale multiplies every term uniformly, so it factors out of the padding-and-gaps
+        // sum entirely and just scales the whole aspect ratio down (a taller box) by the same
+        // amount.
+        1f / (contentScale * (TOP_PAD_FRACTION + BOTTOM_PAD_FRACTION + (numStrings - 1) * STRING_SPACING_FRACTION))
     } else {
         1f
     }
@@ -95,24 +102,24 @@ fun FrettedInstrumentDiagram(
         modifier = modifier
             .fillMaxWidth()
             .aspectRatio(contentAspectRatio)
-            .pointerInput(tuning) {
+            .pointerInput(tuning, contentScale) {
                 detectTapGestures(
                     onPress = { offset ->
-                        pressedCell = hitTestFret(offset.x, offset.y, size.width.toFloat(), size.height.toFloat(), numStrings, numFrets)
+                        pressedCell = hitTestFret(offset.x, offset.y, size.width.toFloat(), size.height.toFloat(), numStrings, numFrets, contentScale)
                         tryAwaitRelease()
                         pressedCell = null
                     },
                     onTap = { offset ->
-                        hitTestFret(offset.x, offset.y, size.width.toFloat(), size.height.toFloat(), numStrings, numFrets)
+                        hitTestFret(offset.x, offset.y, size.width.toFloat(), size.height.toFloat(), numStrings, numFrets, contentScale)
                             ?.let { (stringIndex, fret) -> onFretTapped(stringIndex, fret) }
                     },
                 )
             }
     ) {
-        val leftPad = size.width * LEFT_PAD_FRACTION
-        val rightPad = size.width * RIGHT_PAD_FRACTION
-        val topPad = size.width * TOP_PAD_FRACTION
-        val bottomPad = size.width * BOTTOM_PAD_FRACTION
+        val leftPad = size.width * LEFT_PAD_FRACTION * contentScale
+        val rightPad = size.width * RIGHT_PAD_FRACTION * contentScale
+        val topPad = size.width * TOP_PAD_FRACTION * contentScale
+        val bottomPad = size.width * BOTTOM_PAD_FRACTION * contentScale
 
         val fretboardWidth = size.width - leftPad - rightPad
 
@@ -122,14 +129,14 @@ fun FrettedInstrumentDiagram(
         // numFrets < the neck view's 12, the drawn grid is centered in the leftover width rather
         // than reaching the right edge — see the string-line drawing below, which stops at the
         // last actual fret rather than continuing into that unused space.
-        val positionSpacing = size.width * FRET_SPACING_FRACTION
+        val positionSpacing = size.width * FRET_SPACING_FRACTION * contentScale
         val fretGridLeftOffset = ((fretboardWidth - numFrets * positionSpacing) / 2f).coerceAtLeast(0f)
         fun positionX(fret: Int) = leftPad + fretGridLeftOffset + fret * positionSpacing
 
         // A shared absolute string spacing (see STRING_SPACING_FRACTION) rather than one derived
         // from this diagram's own box height, so every diagram/instrument combination keeps the
         // same physical string spacing instead of stretching to fill whatever height it has.
-        val stringSpacing = size.width * STRING_SPACING_FRACTION
+        val stringSpacing = size.width * STRING_SPACING_FRACTION * contentScale
         // Row 0 of tuning.openStringMidiNotes is the lowest-pitched string (see the "Low E2 ...
         // high E4" comments on InstrumentTunings) — draw it at the bottom and the highest-pitched
         // string at the top, matching how a player looking down at their own instrument's neck
@@ -144,7 +151,7 @@ fun FrettedInstrumentDiagram(
         // A shared absolute size (see NOTE_CIRCLE_RADIUS_FRACTION) rather than one derived from
         // this diagram's own, more generous per-cell space — otherwise the windowed scale-box
         // (only 4 frets wide) draws visibly larger circles than the full 12-fret neck view.
-        val markerRadius = size.width * NOTE_CIRCLE_RADIUS_FRACTION
+        val markerRadius = size.width * NOTE_CIRCLE_RADIUS_FRACTION * contentScale
 
         fun drawCenteredText(text: String, center: Offset, fontSizePx: Float, color: Color, bold: Boolean = false) {
             val style = TextStyle(
@@ -196,7 +203,7 @@ fun FrettedInstrumentDiagram(
             drawCenteredText(
                 text = stringLabels[s],
                 center = Offset(leftPad * 0.4f, y),
-                fontSizePx = size.width * DIAGRAM_LABEL_FONT_FRACTION,
+                fontSizePx = size.width * DIAGRAM_LABEL_FONT_FRACTION * contentScale,
                 color = labelTextColor,
                 bold = true,
             )
@@ -218,7 +225,7 @@ fun FrettedInstrumentDiagram(
         // grid whenever the box is taller than this instrument's strings need (see
         // stringGridHeight's doc above).
         val fretLabelY = topPad + stringGridHeight + bottomPad * 0.55f
-        val fretLabelFontSize = size.width * DIAGRAM_LABEL_FONT_FRACTION
+        val fretLabelFontSize = size.width * DIAGRAM_LABEL_FONT_FRACTION * contentScale
         for (f in 0..numFrets) {
             val x = if (f == 0) positionX(f) else positionX(f) - positionSpacing / 2f
             val isMarkerFret = f == DOUBLE_MARKER_FRET || f in MARKER_FRETS
@@ -285,19 +292,20 @@ private fun hitTestFret(
     height: Float,
     numStrings: Int,
     numFrets: Int,
+    contentScale: Float,
 ): Pair<Int, Int>? {
-    val leftPad = width * LEFT_PAD_FRACTION
-    val rightPad = width * RIGHT_PAD_FRACTION
-    val topPad = width * TOP_PAD_FRACTION
-    val bottomPad = width * BOTTOM_PAD_FRACTION
+    val leftPad = width * LEFT_PAD_FRACTION * contentScale
+    val rightPad = width * RIGHT_PAD_FRACTION * contentScale
+    val topPad = width * TOP_PAD_FRACTION * contentScale
+    val bottomPad = width * BOTTOM_PAD_FRACTION * contentScale
 
     val fretboardWidth = width - leftPad - rightPad
     val fretboardHeight = height - topPad - bottomPad
     if (fretboardWidth <= 0f || fretboardHeight <= 0f) return null
 
-    val positionSpacing = width * FRET_SPACING_FRACTION
+    val positionSpacing = width * FRET_SPACING_FRACTION * contentScale
     val fretGridLeftOffset = ((fretboardWidth - numFrets * positionSpacing) / 2f).coerceAtLeast(0f)
-    val stringSpacing = width * STRING_SPACING_FRACTION
+    val stringSpacing = width * STRING_SPACING_FRACTION * contentScale
 
     val stringIndex = if (numStrings > 1) {
         // Mirrors stringY's top-to-bottom = high-to-low flip above: row 0 on screen (y closest to

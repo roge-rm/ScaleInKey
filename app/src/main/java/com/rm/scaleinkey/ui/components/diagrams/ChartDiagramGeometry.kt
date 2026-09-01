@@ -1,6 +1,18 @@
 package com.rm.scaleinkey.ui.components.diagrams
 
 /**
+ * Uniform size multiplier for chart mode's diagrams — [ChordShapeDiagram] and
+ * [FrettedInstrumentDiagram]'s windowed scale-box (chart mode's other diagrams; the full,
+ * unwindowed neck view is unaffected) — applied on top of every fraction below (spacing, note-
+ * circle radius, label text, and padding alike, so proportions stay identical to the neck view,
+ * just bigger). These two diagrams only ever show 4 frets at a time — far fewer than the neck
+ * view's 12 — so there's headroom to size them up for legibility without the grid feeling
+ * cramped. Tune this one constant to make chart mode's diagrams bigger or smaller relative to the
+ * neck view; 1f matches the neck view's own scale exactly.
+ */
+internal const val CHART_MODE_SCALE = 1.25f
+
+/**
  * Height of one string row in [FrettedInstrumentDiagram] (or, in [ChordShapeDiagram], width of one
  * string column — strings run horizontally there instead), as a fraction of canvas width. Every
  * diagram used to derive its own string spacing by dividing whatever height/width *it* had left

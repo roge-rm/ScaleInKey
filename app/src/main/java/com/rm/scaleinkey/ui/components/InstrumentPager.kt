@@ -37,6 +37,7 @@ import com.rm.scaleinkey.music.StringInstrumentTuning
 import com.rm.scaleinkey.music.fretMidiNote
 import com.rm.scaleinkey.music.scaleBoxWindow
 import com.rm.scaleinkey.ui.LocalSoundEngine
+import com.rm.scaleinkey.ui.components.diagrams.CHART_MODE_SCALE
 import com.rm.scaleinkey.ui.components.diagrams.ChordShapeDiagram
 import com.rm.scaleinkey.ui.components.diagrams.FrettedInstrumentDiagram
 import com.rm.scaleinkey.ui.components.diagrams.PianoDiagram
@@ -204,6 +205,7 @@ private fun FrettedOrChartDiagram(
                 rootPitchClass = rootPitchClass,
                 highlightedNotes = highlightedNotes,
                 isChordSelection = isChordSelection,
+                contentScale = CHART_MODE_SCALE,
                 onFretTapped = { stringIndex, fret ->
                     soundEngine.playNote(instrument, fretMidiNote(tuning, stringIndex, fret))
                 },
