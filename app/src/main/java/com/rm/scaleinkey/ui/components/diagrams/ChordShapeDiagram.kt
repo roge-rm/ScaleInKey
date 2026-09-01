@@ -98,7 +98,10 @@ fun ChordShapeDiagram(
         val rowSpacing = gridHeight / FRET_ROWS
         fun rowY(row: Int) = topPad + row * rowSpacing // row 0 = nut/position line, 1..FRET_ROWS = frets
 
-        val dotRadius = minOf(stringSpacing, rowSpacing) * 0.34f
+        // Same shared absolute size FrettedInstrumentDiagram uses (see NOTE_CIRCLE_RADIUS_FRACTION)
+        // rather than one derived from this diagram's own per-cell space, so a chord shape's dots
+        // match the neck/scale-box views' size instead of coming out larger.
+        val dotRadius = size.width * NOTE_CIRCLE_RADIUS_FRACTION
 
         fun drawCenteredText(text: String, center: Offset, fontSizePx: Float, color: Color, bold: Boolean = false) {
             val style = TextStyle(
