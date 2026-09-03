@@ -1,6 +1,7 @@
 # ScaleInKey
 
-This is an Android (8.0 or higher) app to show you the notes and chords in a given mode or scale. The app store is full of paid or ad-filled apps that do this (and more! or less!) so I decided to test claude out and release something for free. Cheers.
+ScaleInKey is an Android (8+) app that shows you the notes and chords in various modes and scales. 
+It also includes a simple chord progression sequencer with looping and adjustable BPM.
 
 <img src="docs/screenshot-main.png" alt="ScaleInKey main screen: C Ionian scale with diatonic chords and the Guitar fingering-chart diagram for the I chord" width="360" />
 
