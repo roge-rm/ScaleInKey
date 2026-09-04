@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Ported directly from scaleinkey-icon-1024.svg (project root): a piano-key/note mark, kept
+<!-- Ported directly from branding/scaleinkey-icon-1024.svg: a piano-key/note mark, kept
      in that file's own 240x240 coordinate space rather than the usual 108-unit adaptive-icon
      convention, since VectorDrawable scales the viewport to the declared size regardless. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
