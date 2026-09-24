@@ -5,14 +5,13 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
-// Release signing credentials live in local.properties (gitignored, machine-local — see that
-// file's own header) rather than here, so the keystore path/passwords never reach version
-// control. Guarded so a checkout without them still builds fine; it just won't sign release.
-val localProperties = Properties().apply {
-    val file = rootProject.file("local.properties")
-    if (file.exists()) file.inputStream().use { load(it) }
-}
-val releaseStoreFile = localProperties.getProperty("scaleinkey.release.storeFile")
+// Release signing comes from ../Keys/scaleinkey-keystore.properties, beside the project rather than
+// in it (the same layout as Acidulous), so neither the keystore nor its passwords can ever be
+// committed. Without that file, e.g. on a fresh clone, the release build is simply unsigned.
+val signingProperties: Properties? = rootProject.file("../Keys/scaleinkey-keystore.properties")
+    .takeIf { it.exists() }
+    ?.let { f -> Properties().apply { f.inputStream().use { load(it) } } }
+val releaseStoreFile = signingProperties?.getProperty("storeFile")
 
 android {
     namespace = "com.rm.scaleinkey"
@@ -43,9 +42,9 @@ android {
         if (releaseStoreFile != null) {
             create("release") {
                 storeFile = file(releaseStoreFile)
-                storePassword = localProperties.getProperty("scaleinkey.release.storePassword")
-                keyAlias = localProperties.getProperty("scaleinkey.release.keyAlias")
-                keyPassword = localProperties.getProperty("scaleinkey.release.keyPassword")
+                storePassword = signingProperties?.getProperty("storePassword")
+                keyAlias = signingProperties?.getProperty("keyAlias")
+                keyPassword = signingProperties?.getProperty("keyPassword")
             }
         }
     }
