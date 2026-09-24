@@ -54,7 +54,7 @@ fun ScaleExplorerScreen(
                 HeroBand(
                     onSwitchScreen = onSwitchScreen,
                     switchIcon = "🎹",
-                    switchContentDescription = "Open chord progression sequencer",
+                    switchContentDescription = "Open the chord sequencer",
                 )
                 Box(
                     modifier = Modifier
