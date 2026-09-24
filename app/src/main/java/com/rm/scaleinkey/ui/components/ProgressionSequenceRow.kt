@@ -87,7 +87,7 @@ fun ProgressionSequenceRow(
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                text = "Tap a chord above to start building a progression",
+                text = "Tap a chord above to add it to your progression",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(vertical = 20.dp),

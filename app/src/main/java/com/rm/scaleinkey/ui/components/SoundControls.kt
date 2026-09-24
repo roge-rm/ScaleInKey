@@ -43,7 +43,7 @@ fun SoundControls(soundEngine: SoundEngine, modifier: Modifier = Modifier) {
             coroutineScope.launch {
                 Toast.makeText(
                     context,
-                    if (ok) "Soundfont loaded" else "Couldn't load that file as a soundfont",
+                    if (ok) "Soundfont loaded" else "That file doesn't look like a soundfont",
                     Toast.LENGTH_SHORT,
                 ).show()
             }
@@ -77,14 +77,14 @@ fun SoundControls(soundEngine: SoundEngine, modifier: Modifier = Modifier) {
                     },
                 )
                 DropdownMenuItem(
-                    text = { Text("Reset to default") },
+                    text = { Text("Use default soundfont") },
                     onClick = {
                         menuExpanded = false
                         soundEngine.resetToDefault { ok ->
                             coroutineScope.launch {
                                 Toast.makeText(
                                     context,
-                                    if (ok) "Reset to default soundfont" else "Couldn't reset soundfont",
+                                    if (ok) "Back to the default soundfont" else "Couldn't switch back to the default soundfont",
                                     Toast.LENGTH_SHORT,
                                 ).show()
                             }

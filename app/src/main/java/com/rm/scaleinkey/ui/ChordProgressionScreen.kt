@@ -62,7 +62,7 @@ fun ChordProgressionScreen(
                 HeroBand(
                     onSwitchScreen = onSwitchScreen,
                     switchIcon = "←",
-                    switchContentDescription = "Back to Explore",
+                    switchContentDescription = "Back to scales",
                 )
                 Box(
                     modifier = Modifier
@@ -115,7 +115,7 @@ fun ChordProgressionScreen(
                             SequencerPlaybackEffect(explorerState, progressionState, soundEngine)
                         } else {
                             Text(
-                                text = "This scale doesn't have diatonic chords to sequence — pick a mode, minor variant, or jazz scale.",
+                                text = "This scale doesn't have chords to sequence. Try one of the modes, the minor scales or most of the jazz scales.",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
