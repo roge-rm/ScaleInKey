@@ -6,9 +6,13 @@ junitVersion = "1.1.5"
 espressoCore = "3.5.1"
 lifecycleRuntimeKtx = "2.6.1"
 activityCompose = "1.8.0"
-kotlin = "2.2.10"
+kotlin = "2.3.21"
 composeBom = "2026.02.01"
 oboe = "1.10.0"
+composeMultiplatform = "1.12.1"
+composeMultiplatformMaterial3 = "1.9.0"
+kotlinxCoroutines = "1.10.2"
+kotlinxBrowser = "0.5.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -28,7 +32,17 @@ androidx-compose-material3 = { group = "androidx.compose.material3", name = "mat
 androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }
 oboe = { group = "com.google.oboe", name = "oboe", version.ref = "oboe" }
 
+jb-compose-runtime = { group = "org.jetbrains.compose.runtime", name = "runtime", version.ref = "composeMultiplatform" }
+jb-compose-foundation = { group = "org.jetbrains.compose.foundation", name = "foundation", version.ref = "composeMultiplatform" }
+jb-compose-ui = { group = "org.jetbrains.compose.ui", name = "ui", version.ref = "composeMultiplatform" }
+jb-compose-material3 = { group = "org.jetbrains.compose.material3", name = "material3", version.ref = "composeMultiplatformMaterial3" }
+kotlinx-browser = { group = "org.jetbrains.kotlinx", name = "kotlinx-browser", version.ref = "kotlinxBrowser" }
+kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
+
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
+android-kotlin-multiplatform-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
 

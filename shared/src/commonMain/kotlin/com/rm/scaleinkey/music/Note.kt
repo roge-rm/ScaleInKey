@@ -2,7 +2,7 @@ package com.rm.scaleinkey.music
 
 data class Note(val letter: Letter, val accidental: Int) {
     val pitchClass: Int
-        get() = Math.floorMod(letter.naturalPitchClass + accidental, 12)
+        get() = (letter.naturalPitchClass + accidental).mod(12)
 
     fun displayName(): String {
         val symbol = when (accidental) {

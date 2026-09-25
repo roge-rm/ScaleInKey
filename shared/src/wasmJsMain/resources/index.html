@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ScaleInKey</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<style>
+  html, body { margin: 0; height: 100%; background: #fafafc; overflow: hidden; }
+  @media (prefers-color-scheme: dark) { html, body { background: #121016; } }
+  canvas { touch-action: none; }
+  #loading { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    color: #888; font: 16px/1.5 system-ui, sans-serif; text-align: center; padding: 16px; }
+  #toast { position: fixed; left: 50%; bottom: 32px; transform: translateX(-50%); z-index: 10;
+    max-width: calc(100% - 64px); padding: 10px 18px; border-radius: 20px; background: #333; color: #fff;
+    font: 14px/1.4 system-ui, sans-serif; opacity: 0; transition: opacity .2s; pointer-events: none; }
+  #toast.shown { opacity: .92; }
+</style>
+<script>
+  // SoundFont playback for the Kotlin side (WebSoundEngine calls sikSound). The Android app renders
+  // through TinySoundFont; this is a smaller player of the same SF2 data on Web Audio: each note
+  // plays its zones' samples with the soundfont's tuning, loop points, attenuation, pan and volume
+  // envelope. Filters, LFOs and modulators are left out, so a soundfont that leans on them sounds
+  // plainer here than on Android. A soundfont the user loads is kept in IndexedDB so it survives a
+  // reload, like the Android app's remembered file.
+  window.sikSound = (() => {
+    const PROGRAMS = { PIANO: 0, GUITAR: 24, UKULELE: 105, BASS: 32 };
+    let ctx = null, master = null;
+    let font = null;           // the parsed soundfont
+    let presets = {};          // instrument name -> preset index
+    let buffers = new Map();   // sample index -> AudioBuffer
+    let regionCache = new Map(); // preset index -> regions
+    const voices = new Set();
+
+    // ---- SF2 parsing ----
+    function parse(arrayBuffer) {
+      const view = new DataView(arrayBuffer);
+      const str = (o, n) => String.fromCharCode(...new Uint8Array(arrayBuffer, o, n)).replace(/\0.*$/s, '');
+      if (str(0, 4) !== 'RIFF' || str(8, 4) !== 'sfbk') throw new Error('not a soundfont');
+      const chunks = {};
+      (function walk(start, end) {
+        for (let o = start; o + 8 <= end;) {
+          const id = str(o, 4), size = view.getUint32(o + 4, true);
+          if (id === 'LIST') walk(o + 12, o + 8 + size);
+          else chunks[id] = { offset: o + 8, size };
+          o += 8 + size + (size & 1);
+        }
+      })(12, Math.min(view.byteLength, 8 + view.getUint32(4, true)));
+      for (const id of ['smpl', 'phdr', 'pbag', 'pgen', 'inst', 'ibag', 'igen', 'shdr']) {
+        if (!chunks[id]) throw new Error('missing ' + id);
+      }
+      const records = (id, size, read) => {
+        const c = chunks[id], out = [];
+        for (let o = c.offset; o + size <= c.offset + c.size; o += size) out.push(read(o));
+        return out;
+      };
+      const gen = o => ({ oper: view.getUint16(o, true), amount: view.getInt16(o + 2, true),
+                          lo: view.getUint8(o + 2), hi: view.getUint8(o + 3) });
+      return {
+        samples: new Int16Array(arrayBuffer.slice(chunks.smpl.offset, chunks.smpl.offset + (chunks.smpl.size & ~1))),
+        phdr: records('phdr', 38, o => ({ program: view.getUint16(o + 20, true), bank: view.getUint16(o + 22, true),
+                                          bag: view.getUint16(o + 24, true) })),
+        pbag: records('pbag', 4, o => view.getUint16(o, true)),
+        pgen: records('pgen', 4, gen),
+        inst: records('inst', 22, o => view.getUint16(o + 20, true)),
+        ibag: records('ibag', 4, o => view.getUint16(o, true)),
+        igen: records('igen', 4, gen),
+        shdr: records('shdr', 46, o => ({
+          start: view.getUint32(o + 20, true), end: view.getUint32(o + 24, true),
+          loopStart: view.getUint32(o + 28, true), loopEnd: view.getUint32(o + 32, true),
+          rate: view.getUint32(o + 36, true), pitch: view.getUint8(o + 40), correction: view.getInt8(o + 41),
+        })),
+      };
+    }
+
+    // Zones of a preset or instrument: [{gens, keys:[lo,hi], vels:[lo,hi]}], with the global zone
+    // (the first one, when it lacks the terminal generator) merged into the others.
+    function zones(bags, gens, first, last, terminal) {
+      const list = [];
+      for (let b = first; b < last; b++) {
+        const zone = { gens: {}, keys: null, vels: null };
+        for (let g = bags[b]; g < bags[b + 1]; g++) {
+          const { oper, amount, lo, hi } = gens[g];
+          if (oper === 43) zone.keys = [lo, hi];
+          else if (oper === 44) zone.vels = [lo, hi];
+          else zone.gens[oper] = amount;
+        }
+        list.push(zone);
+      }
+      let global = null;
+      if (list.length && !(terminal in list[0].gens)) global = list.shift();
+      return list.filter(z => terminal in z.gens).map(z => global ? {
+        gens: { ...global.gens, ...z.gens }, keys: z.keys || global.keys, vels: z.vels || global.vels,
+      } : z);
+    }
+
+    function regions(presetIndex) {
+      if (regionCache.has(presetIndex)) return regionCache.get(presetIndex);
+      const f = font, out = [];
+      const p = f.phdr[presetIndex];
+      for (const pz of zones(f.pbag, f.pgen, p.bag, f.phdr[presetIndex + 1].bag, 41)) {
+        const instIndex = pz.gens[41];
+        for (const iz of zones(f.ibag, f.igen, f.inst[instIndex], f.inst[instIndex + 1], 53)) {
+          out.push({ inst: iz.gens, preset: pz.gens,
+                     keys: intersect(iz.keys, pz.keys), vels: intersect(iz.vels, pz.vels) });
+        }
+      }
+      regionCache.set(presetIndex, out);
+      return out;
+    }
+    const intersect = (a, b) => [Math.max((a || [0])[0], (b || [0])[0]), Math.min((a || [0, 127])[1], (b || [0, 127])[1])];
+
+    function findPreset(bank, program) {
+      for (let i = 0; i < font.phdr.length - 1; i++) {
+        if (font.phdr[i].bank === bank && font.phdr[i].program === program) return i;
+      }
+      return -1;
+    }
+
+    function use(arrayBuffer) {
+      const parsed = parse(arrayBuffer);
+      stopAll();
+      font = parsed;
+      buffers = new Map();
+      regionCache = new Map();
+      // The same choices as the Android SoundEngine: GM has no ukulele, so Banjo, else the guitar.
+      const or = (i, fallback) => i >= 0 ? i : fallback;
+      presets = { PIANO: or(findPreset(0, 0), 0), GUITAR: or(findPreset(0, 24), 0), BASS: or(findPreset(0, 32), 0) };
+      presets.UKULELE = or(findPreset(0, 105), presets.GUITAR);
+    }
+
+    // ---- playback ----
+    function audio() {
+      if (!ctx) {
+        ctx = new (window.AudioContext || window.webkitAudioContext)();
+        master = ctx.createGain();
+        master.connect(ctx.destination);
+      }
+      if (ctx.state === 'suspended') ctx.resume();
+      return ctx;
+    }
+    // Browsers only allow audio after a user gesture.
+    for (const type of ['pointerdown', 'keydown', 'touchstart']) {
+      window.addEventListener(type, audio, { capture: true });
+    }
+
+    function sampleBuffer(index) {
+      if (buffers.has(index)) return buffers.get(index);
+      const s = font.shdr[index];
+      const length = Math.max(1, Math.min(s.end, font.samples.length) - s.start);
+      const rate = s.rate >= 3000 && s.rate <= 192000 ? s.rate : 44100;
+      const buffer = ctx.createBuffer(1, length, rate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < length; i++) data[i] = (font.samples[s.start + i] || 0) / 32768;
+      buffers.set(index, buffer);
+      return buffer;
+    }
+
+    // Envelope times, which TinySoundFont treats as zero below -11950 timecents.
+    const seconds = timecents => timecents < -11950 ? 0 : Math.pow(2, Math.min(8000, timecents) / 1200);
+    // TinySoundFont (following LinuxSampler) decays and releases exponentially, falling by e^-9.226
+    // over the generator's time: a time constant of t / 9.226.
+    const TAU = 1 / 9.226;
+
+    function startVoice(region, key, velocity, when) {
+      const g = region.inst, pg = region.preset;
+      const sum = (oper, dflt) => (oper in g ? g[oper] : dflt) + (oper in pg ? pg[oper] : 0);
+      const s = font.shdr[g[53]];
+      if (!s) return null;
+      const buffer = sampleBuffer(g[53]);
+      const rate = buffer.sampleRate;
+
+      const root = 58 in g && g[58] >= 0 ? g[58] : (s.pitch <= 127 ? s.pitch : 60);
+      const cents = (key - root) * sum(56, 100) + sum(51, 0) * 100 + sum(52, 0) + s.correction;
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.playbackRate.value = Math.pow(2, cents / 1200);
+      const offset = (g[0] || 0) + (g[4] || 0) * 32768;
+      const mode = g[54] || 0;
+      if (mode === 1 || mode === 3) {
+        const loopStart = (s.loopStart - s.start + (g[2] || 0) + (g[45] || 0) * 32768) / rate;
+        const loopEnd = (s.loopEnd - s.start + (g[3] || 0) + (g[50] || 0) * 32768) / rate;
+        if (loopEnd > loopStart && loopStart >= 0) {
+          source.loop = true;
+          source.loopStart = loopStart;
+          source.loopEnd = loopEnd;
+        }
+      }
+
+      // Levels as TinySoundFont reads them: initial attenuation at a tenth of the SF2 scale
+      // (centibels * 0.01 dB), sustain in full centibels, and velocity as a plain gain.
+      const peak = Math.pow(10, -Math.max(0, Math.min(1440, sum(48, 0))) / 2000) * velocity;
+      const sustain = Math.pow(10, -Math.max(0, Math.min(1440, sum(37, 0))) / 200);
+      const env = {
+        start: when + seconds(sum(33, -12000)), attack: seconds(sum(34, -12000)), hold: seconds(sum(35, -12000)),
+        decayTau: seconds(sum(36, -12000)) * TAU, releaseTime: seconds(sum(38, -12000)), peak, sustain,
+      };
+      const gain = ctx.createGain();
+      const p = gain.gain;
+      const decayStart = env.start + env.attack + env.hold;
+      p.setValueAtTime(0, when);
+      p.setValueAtTime(0, env.start);
+      p.linearRampToValueAtTime(peak, env.start + env.attack);
+      p.setValueAtTime(peak, decayStart);
+      if (sustain < 1) {
+        // Falls exponentially until it reaches the sustain level, then stays there.
+        p.exponentialRampToValueAtTime(peak * sustain, decayStart + env.decayTau * Math.log(1 / sustain));
+      }
+
+      let node = gain;
+      if (ctx.createStereoPanner) {
+        const pan = ctx.createStereoPanner();
+        pan.pan.value = Math.max(-1, Math.min(1, sum(17, 0) / 500));
+        gain.connect(pan);
+        node = pan;
+      }
+      node.connect(master);
+      source.connect(gain);
+      source.start(when, Math.min(offset / rate, buffer.duration));
+      const voice = { source, gain, env, loopUntilRelease: mode === 3 };
+      source.onended = () => { voices.delete(voice); node.disconnect(); };
+      voices.add(voice);
+      return voice;
+    }
+
+    // Where the envelope stands at time t, so a release can start from there.
+    function envelopeAt(env, t) {
+      if (t < env.start) return 0;
+      if (t < env.start + env.attack) return env.peak * (t - env.start) / env.attack;
+      const decayStart = env.start + env.attack + env.hold;
+      if (t < decayStart) return env.peak;
+      if (env.decayTau <= 0) return env.peak * env.sustain;
+      return Math.max(env.peak * env.sustain, env.peak * Math.exp(-(t - decayStart) / env.decayTau));
+    }
+
+    function release(voice, when) {
+      const p = voice.gain.gain;
+      p.cancelScheduledValues(when);
+      p.setValueAtTime(envelopeAt(voice.env, when), when);
+      // TinySoundFont's shortest release is 10 ms, and a voice ends when its release time is up.
+      const time = Math.max(0.01, voice.env.releaseTime);
+      p.setTargetAtTime(0, when, time * TAU);
+      if (voice.loopUntilRelease) voice.source.loop = false;
+      try { voice.source.stop(when + time); } catch (e) {}
+    }
+
+    function stopAll() {
+      if (!ctx) return;
+      for (const voice of voices) release(voice, ctx.currentTime);
+    }
+
+    // ---- storage of a user-loaded soundfont ----
+    function db(mode, action) {
+      return new Promise((resolve, reject) => {
+        const open = indexedDB.open('scaleinkey', 1);
+        open.onupgradeneeded = () => open.result.createObjectStore('soundfont');
+        open.onerror = () => reject(open.error);
+        open.onsuccess = () => {
+          const request = action(open.result.transaction('soundfont', mode).objectStore('soundfont'));
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        };
+      });
+    }
+    const loadDefault = () => fetch('scaleinkey_default.sf2').then(r => {
+      if (!r.ok) throw new Error(r.status);
+      return r.arrayBuffer();
+    }).then(use);
+
+    // The saved soundfont if there is one, else the bundled default.
+    db('readonly', store => store.get('custom'))
+      .then(saved => { if (!saved) throw new Error('none'); use(saved); })
+      .catch(() => loadDefault())
+      .catch(e => console.warn('Could not load the soundfont', e));
+
+    let toastTimer = 0;
+    return {
+      play(instrument, notes, velocity, durationMs) {
+        if (!font) return;
+        audio();
+        const now = ctx.currentTime, end = now + durationMs / 1000;
+        const preset = presets[instrument] ?? 0;
+        for (const key of String(notes).split(',').map(Number)) {
+          const velocity127 = Math.round(velocity * 127);
+          for (const region of regions(preset)) {
+            if (key < region.keys[0] || key > region.keys[1]) continue;
+            if (velocity127 < region.vels[0] || velocity127 > region.vels[1]) continue;
+            const voice = startVoice(region, key, velocity, now);
+            if (voice) release(voice, end);
+          }
+        }
+      },
+      stopAll,
+      pickFile(onResult) {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.sf2,audio/x-soundfont';
+        input.onchange = () => {
+          const file = input.files && input.files[0];
+          if (!file) return;
+          file.arrayBuffer().then(bytes => {
+            use(bytes);
+            return db('readwrite', store => store.put(bytes, 'custom')).catch(() => {});
+          }).then(() => onResult(true), () => onResult(false));
+        };
+        input.click();
+      },
+      resetToDefault(onResult) {
+        db('readwrite', store => store.delete('custom')).catch(() => {})
+          .then(loadDefault).then(() => onResult(true), () => onResult(false));
+      },
+      toast(message) {
+        let el = document.getElementById('toast');
+        if (!el) {
+          el = document.createElement('div');
+          el.id = 'toast';
+          document.body.appendChild(el);
+        }
+        el.textContent = message;
+        el.classList.add('shown');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => el.classList.remove('shown'), 2000);
+      },
+    };
+  })();
+</script>
+<script src="scaleinkey.js"></script>
+</head>
+<body>
+<div id="loading">Loading ScaleInKey…</div>
+</body>
+</html>

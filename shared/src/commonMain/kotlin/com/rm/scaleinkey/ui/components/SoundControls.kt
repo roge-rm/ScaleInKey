@@ -1,8 +1,5 @@
 package com.rm.scaleinkey.ui.components
 
-import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -21,32 +18,23 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.rm.scaleinkey.LocalPlatform
 import com.rm.scaleinkey.audio.SoundEngine
 import kotlinx.coroutines.launch
 
 /** Bottom-corner FAB stack (soundfont load/reset, mute toggle) shared by every top-level screen. */
 @Composable
 fun SoundControls(soundEngine: SoundEngine, modifier: Modifier = Modifier) {
-    val context = LocalContext.current
+    val platform = LocalPlatform.current
     val coroutineScope = rememberCoroutineScope()
     var soundEnabled by remember { mutableStateOf(soundEngine.enabled) }
     var menuExpanded by remember { mutableStateOf(false) }
 
-    val pickSoundFontLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri == null) return@rememberLauncherForActivityResult
-        soundEngine.loadFromUri(uri) { ok ->
-            coroutineScope.launch {
-                Toast.makeText(
-                    context,
-                    if (ok) "Soundfont loaded" else "That file doesn't look like a soundfont",
-                    Toast.LENGTH_SHORT,
-                ).show()
-            }
+    val pickSoundFont = platform.rememberSoundFontPicker(soundEngine) { ok ->
+        coroutineScope.launch {
+            platform.showMessage(if (ok) "Soundfont loaded" else "That file doesn't look like a soundfont")
         }
     }
 
@@ -73,7 +61,7 @@ fun SoundControls(soundEngine: SoundEngine, modifier: Modifier = Modifier) {
                     text = { Text("Load soundfont…") },
                     onClick = {
                         menuExpanded = false
-                        pickSoundFontLauncher.launch(arrayOf("*/*"))
+                        pickSoundFont()
                     },
                 )
                 DropdownMenuItem(
@@ -82,11 +70,9 @@ fun SoundControls(soundEngine: SoundEngine, modifier: Modifier = Modifier) {
                         menuExpanded = false
                         soundEngine.resetToDefault { ok ->
                             coroutineScope.launch {
-                                Toast.makeText(
-                                    context,
+                                platform.showMessage(
                                     if (ok) "Back to the default soundfont" else "Couldn't switch back to the default soundfont",
-                                    Toast.LENGTH_SHORT,
-                                ).show()
+                                )
                             }
                         }
                     },

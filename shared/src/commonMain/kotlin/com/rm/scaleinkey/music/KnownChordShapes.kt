@@ -106,12 +106,12 @@ private fun knownShapeTableFor(tuning: StringInstrumentTuning): KnownShapeTable?
 internal fun findKnownShapeFrets(tuning: StringInstrumentTuning, chordTones: List<Note>, rootPitchClass: Int): Frets? {
     val table = knownShapeTableFor(tuning) ?: return null
     if (chordTones.isEmpty()) return null
-    val third = Math.floorMod(chordTones[1].pitchClass - chordTones[0].pitchClass, 12)
-    val fifth = Math.floorMod(chordTones[2].pitchClass - chordTones[0].pitchClass, 12)
+    val third = (chordTones[1].pitchClass - chordTones[0].pitchClass).mod(12)
+    val fifth = (chordTones[2].pitchClass - chordTones[0].pitchClass).mod(12)
     return when (chordTones.size) {
         3 -> table.triad[TriadQuality.fromIntervals(third, fifth)]?.get(rootPitchClass)
         4 -> {
-            val seventh = Math.floorMod(chordTones[3].pitchClass - chordTones[0].pitchClass, 12)
+            val seventh = (chordTones[3].pitchClass - chordTones[0].pitchClass).mod(12)
             table.seventh[ChordQuality.fromIntervals(third, fifth, seventh)]?.get(rootPitchClass)
         }
         else -> null
