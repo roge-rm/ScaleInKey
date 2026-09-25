@@ -17,14 +17,14 @@ import kotlinx.coroutines.launch
  * audio work happens in native code — see native_sound_engine.cpp for why. Lives for the app
  * process lifetime; construct once and share.
  */
-class SoundEngine(private val appContext: Context) {
+class AndroidSoundEngine(private val appContext: Context) : SoundEngine {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val prefs = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     @Volatile private var loaded = false
 
-    @Volatile var enabled: Boolean = prefs.getBoolean(KEY_SOUND_ENABLED, true)
+    @Volatile override var enabled: Boolean = prefs.getBoolean(KEY_SOUND_ENABLED, true)
         private set
 
     @Volatile var usingCustomSoundFont: Boolean = false
@@ -45,7 +45,7 @@ class SoundEngine(private val appContext: Context) {
         }
     }
 
-    fun setEnabled(value: Boolean) {
+    override fun setEnabled(value: Boolean) {
         enabled = value
         prefs.edit().putBoolean(KEY_SOUND_ENABLED, value).apply()
         if (!value) {
@@ -55,11 +55,11 @@ class SoundEngine(private val appContext: Context) {
         }
     }
 
-    fun playNote(instrument: InstrumentType, midiNote: Int) {
-        triggerNotes(instrument, listOf(midiNote), 0.9f, NOTE_PREVIEW_MS)
+    override fun playNote(instrument: InstrumentType, midiNote: Int) {
+        triggerNotes(instrument, listOf(midiNote), 0.9f, SoundEngine.NOTE_PREVIEW_MS)
     }
 
-    fun playChord(instrument: InstrumentType, midiNotes: List<Int>, durationMs: Long = CHORD_PREVIEW_MS) {
+    override fun playChord(instrument: InstrumentType, midiNotes: List<Int>, durationMs: Long) {
         if (midiNotes.isEmpty()) return
         triggerNotes(instrument, midiNotes, 0.85f, durationMs)
     }
@@ -88,7 +88,7 @@ class SoundEngine(private val appContext: Context) {
         }
     }
 
-    fun resetToDefault(onResult: (Boolean) -> Unit) {
+    override fun resetToDefault(onResult: (Boolean) -> Unit) {
         scope.launch {
             prefs.edit().remove(KEY_CUSTOM_SF2_URI).apply()
             val ok = loadDefaultInternal()
@@ -158,12 +158,10 @@ class SoundEngine(private val appContext: Context) {
     }
 
     companion object {
-        private const val TAG = "SoundEngine"
+        private const val TAG = "AndroidSoundEngine"
         private const val PREFS_NAME = "scaleinkey_sound"
         private const val KEY_SOUND_ENABLED = "sound_enabled"
         private const val KEY_CUSTOM_SF2_URI = "custom_sf2_uri"
         const val DEFAULT_ASSET_NAME = "scaleinkey_default.sf2"
-        private const val NOTE_PREVIEW_MS = 700L
-        private const val CHORD_PREVIEW_MS = 1000L
     }
 }

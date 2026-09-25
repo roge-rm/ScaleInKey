@@ -13,14 +13,14 @@ fun computeScaleNotes(root: Note, type: ScaleType): List<Note> {
     val letterOffsets = type.letterOffsets ?: type.intervals.indices.toList()
     return type.intervals.mapIndexed { i, interval ->
         val letter = letters[(root.letter.ordinal + letterOffsets[i]) % 7]
-        val targetPitchClass = Math.floorMod(root.pitchClass + interval, 12)
+        val targetPitchClass = (root.pitchClass + interval).mod(12)
         val accidental = normalizeAccidental(targetPitchClass - letter.naturalPitchClass)
         Note(letter, accidental)
     }
 }
 
 private fun normalizeAccidental(rawDiff: Int): Int {
-    var d = Math.floorMod(rawDiff, 12)
+    var d = rawDiff.mod(12)
     if (d > 6) d -= 12
     return d
 }

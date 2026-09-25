@@ -54,7 +54,7 @@ private fun assignFingers(frettedByString: List<Pair<Int, Int>>): Map<Int, Int> 
         return sorted.mapIndexed { i, (stringIndex, _) -> stringIndex to (i + 1) }.toMap()
     }
     val result = mutableMapOf<Int, Int>()
-    frettedByString.groupBy { it.second }.toSortedMap().values.forEachIndexed { i, group ->
+    frettedByString.groupBy { it.second }.entries.sortedBy { it.key }.forEachIndexed { i, (_, group) ->
         group.forEach { (stringIndex, _) -> result[stringIndex] = i + 1 }
     }
     return result

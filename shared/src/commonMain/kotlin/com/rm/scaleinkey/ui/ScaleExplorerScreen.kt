@@ -1,6 +1,5 @@
 package com.rm.scaleinkey.ui
 
-import android.app.Activity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,12 +14,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
-import androidx.core.view.WindowCompat
 import com.rm.scaleinkey.audio.SoundEngine
 import com.rm.scaleinkey.ui.components.ChordRow
 import com.rm.scaleinkey.ui.components.HeroBand
@@ -38,11 +34,6 @@ fun ScaleExplorerScreen(
 ) {
     // HeroBand paints its gradient behind the status bar itself (see HeroBand's own
     // windowInsetsPadding), so Scaffold must not reserve that space again on top of it.
-    val view = LocalView.current
-    SideEffect {
-        val window = (view.context as Activity).window
-        WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
-    }
     Scaffold(modifier = modifier.fillMaxSize(), contentWindowInsets = WindowInsets(0.dp)) { innerPadding ->
         Box(
             modifier = Modifier

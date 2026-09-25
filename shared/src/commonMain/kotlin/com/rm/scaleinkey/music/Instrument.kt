@@ -7,7 +7,7 @@ data class StringInstrumentTuning(
     val openStringMidiNotes: List<Int>,
     val fretCount: Int = 12,
 ) {
-    val openStringPitchClasses: List<Int> get() = openStringMidiNotes.map { Math.floorMod(it, 12) }
+    val openStringPitchClasses: List<Int> get() = openStringMidiNotes.map { it.mod(12) }
 }
 
 object InstrumentTunings {
@@ -38,7 +38,7 @@ fun fretMidiNote(tuning: StringInstrumentTuning, stringIndex: Int, fret: Int): I
     tuning.openStringMidiNotes[stringIndex] + fret
 
 fun fretPitchClass(tuning: StringInstrumentTuning, stringIndex: Int, fret: Int): Int =
-    Math.floorMod(fretMidiNote(tuning, stringIndex, fret), 12)
+    fretMidiNote(tuning, stringIndex, fret).mod(12)
 
 private const val SCALE_BOX_FRET_COUNT = 4
 
@@ -61,7 +61,7 @@ fun buildPianoKeys(octaves: Int = 2, startMidiNote: Int = 60): List<PianoKey> {
     val totalKeys = octaves * 12
     return (0 until totalKeys).map { keyIndex ->
         val midiNote = startMidiNote + keyIndex
-        val pitchClass = Math.floorMod(midiNote, 12)
+        val pitchClass = midiNote.mod(12)
         PianoKey(
             pitchClass = pitchClass,
             isBlack = pitchClass in BLACK_KEY_PITCH_CLASSES,
@@ -78,7 +78,7 @@ fun buildPianoKeys(octaves: Int = 2, startMidiNote: Int = 60): List<PianoKey> {
 fun assignAscendingMidiNotes(pitchClasses: List<Int>, baseMidiNote: Int = 60): List<Int> {
     var previous = baseMidiNote - 1
     return pitchClasses.map { pitchClass ->
-        val candidate = previous + 1 + Math.floorMod(pitchClass - (previous + 1), 12)
+        val candidate = previous + 1 + (pitchClass - (previous + 1)).mod(12)
         previous = candidate
         candidate
     }

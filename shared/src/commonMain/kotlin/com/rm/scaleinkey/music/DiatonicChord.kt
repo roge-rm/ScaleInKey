@@ -10,8 +10,8 @@ data class DiatonicChord(
     fun symbol(): String = "${root.displayName()}${quality.symbolSuffix}"
 
     val triadQuality: TriadQuality by lazy {
-        val third = Math.floorMod(tones[1].pitchClass - tones[0].pitchClass, 12)
-        val fifth = Math.floorMod(tones[2].pitchClass - tones[0].pitchClass, 12)
+        val third = (tones[1].pitchClass - tones[0].pitchClass).mod(12)
+        val fifth = (tones[2].pitchClass - tones[0].pitchClass).mod(12)
         TriadQuality.fromIntervals(third, fifth)
     }
 
@@ -33,9 +33,9 @@ fun buildDiatonicChords(scale: Scale): List<DiatonicChord> {
         val fifth = notes[(degree + 4) % 7]
         val seventh = notes[(degree + 6) % 7]
 
-        val thirdInterval = Math.floorMod(third.pitchClass - root.pitchClass, 12)
-        val fifthInterval = Math.floorMod(fifth.pitchClass - root.pitchClass, 12)
-        val seventhInterval = Math.floorMod(seventh.pitchClass - root.pitchClass, 12)
+        val thirdInterval = (third.pitchClass - root.pitchClass).mod(12)
+        val fifthInterval = (fifth.pitchClass - root.pitchClass).mod(12)
+        val seventhInterval = (seventh.pitchClass - root.pitchClass).mod(12)
 
         val quality = ChordQuality.fromIntervals(thirdInterval, fifthInterval, seventhInterval)
         val base = ROMAN_BASE[degree].let { if (quality.upperCaseRoman) it else it.lowercase() }
