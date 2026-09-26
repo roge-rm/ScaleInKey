@@ -15,7 +15,76 @@
     max-width: calc(100% - 64px); padding: 10px 18px; border-radius: 20px; background: #333; color: #fff;
     font: 14px/1.4 system-ui, sans-serif; opacity: 0; transition: opacity .2s; pointer-events: none; }
   #toast.shown { opacity: .92; }
+  #loading { flex-direction: column; gap: 10px; }
+  #loading-bar { width: min(320px, 100%); height: 4px; border-radius: 2px; overflow: hidden; visibility: hidden; background: rgba(128, 128, 128, 0.25); }
+  #loading-fill { width: 0; height: 100%; transition: width 0.2s; background: #5b4fe3; }
+  @media (prefers-color-scheme: dark) { #loading-fill { background: #c7bfff; } }
+  #loading-amount { font-size: 13px; opacity: 0.7; font-variant-numeric: tabular-nums; min-height: 1.5em; }
 </style>
+<script>
+  // How much of the download has come, while it comes: the app's WebAssembly
+  // and scripts, against the sizes the build wrote beside the page
+  // (load-sizes.json, shared/build.gradle.kts). The WebAssembly loaders ask
+  // through fetch, so each answer is counted as it streams in on its way to
+  // them; the app's script counts when it has loaded. The app removes
+  // #loading when it starts.
+  window.loadProgress = (() => {
+    const seen = {};
+    const finished = new Set();
+    let sizes = null;
+    let drawing = false;
+    const mb = (n) => (n / 1048576).toFixed(1);
+    const draw = () => {
+      drawing = false;
+      const text = document.getElementById('loading-text');
+      if (!text) return;
+      let have = 0, total = 0;
+      if (sizes) {
+        for (const [name, size] of Object.entries(sizes)) {
+          total += size;
+          have += finished.has(name) ? size : Math.min(seen[name] || 0, size);
+        }
+      } else {
+        for (const name in seen) have += seen[name];
+      }
+      if (have === 0) return;
+      const amount = document.getElementById('loading-amount');
+      if (total > 0) {
+        document.getElementById('loading-bar').style.visibility = 'visible';
+        document.getElementById('loading-fill').style.width = (100 * have / total).toFixed(1) + '%';
+        amount.textContent = have >= total ? mb(total) + ' MB' : mb(have) + ' of ' + mb(total) + ' MB';
+        // All here: what is left is the browser compiling it, and the app starting.
+        if (have >= total) text.textContent = 'Starting ScaleInKey…';
+      } else {
+        amount.textContent = mb(have) + ' MB';
+      }
+    };
+    const redraw = () => { if (!drawing) { drawing = true; requestAnimationFrame(draw); } };
+    const realFetch = window.fetch.bind(window);
+    realFetch('load-sizes.json', { cache: 'no-cache' })
+      .then((r) => (r.ok ? r.json() : null)).catch(() => null)
+      .then((s) => { sizes = s; redraw(); });
+    window.fetch = async (input, init) => {
+      const response = await realFetch(input, init);
+      const name = new URL(typeof input === 'string' ? input : (input.url || String(input)), location.href)
+        .pathname.split('/').pop();
+      if (!/\.(wasm|js)$/.test(name) || !response.ok || !response.body || finished.has(name)) return response;
+      const counted = response.body.pipeThrough(new TransformStream({
+        transform(chunk, out) {
+          seen[name] = (seen[name] || 0) + chunk.byteLength;
+          redraw();
+          out.enqueue(chunk);
+        },
+        flush() {
+          finished.add(name);
+          redraw();
+        },
+      }));
+      return new Response(counted, { status: response.status, statusText: response.statusText, headers: response.headers });
+    };
+    return { done(name) { finished.add(name); redraw(); } };
+  })();
+</script>
 <script>
   // SoundFont playback for the Kotlin side (WebSoundEngine calls sikSound). The Android app renders
   // through TinySoundFont; this is a smaller player of the same SF2 data on Web Audio: each note
@@ -324,9 +393,13 @@
     };
   })();
 </script>
-<script src="scaleinkey.js"></script>
+<script src="scaleinkey.js" defer onload="loadProgress.done('scaleinkey.js')"></script>
 </head>
 <body>
-<div id="loading">Loading ScaleInKey…</div>
+<div id="loading">
+  <div id="loading-text">Loading ScaleInKey…</div>
+  <div id="loading-bar"><div id="loading-fill"></div></div>
+  <div id="loading-amount"></div>
+</div>
 </body>
 </html>
