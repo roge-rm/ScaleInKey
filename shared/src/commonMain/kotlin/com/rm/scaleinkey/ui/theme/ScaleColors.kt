@@ -10,8 +10,8 @@ data class ScaleColorPalette(
     val scaleTone: Color,
     val chordTone: Color,
     val inactive: Color,
-    // Text color to draw on top of root/scaleTone/chordTone dots — those three share
-    // similar lightness within a theme mode, so one contrast color covers all of them.
+    // Text colour to draw on top of root/scaleTone/chordTone dots — those three share
+    // similar lightness within a theme mode, so one contrast colour covers all of them.
     val onHighlight: Color,
 )
 

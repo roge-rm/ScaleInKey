@@ -94,7 +94,7 @@ fun ChordShapeDiagram(
         // A shared absolute string spacing (see STRING_SPACING_FRACTION), scaled by
         // CHART_MODE_SCALE — see that constant's doc. Not gridWidth/(numStrings-1), otherwise this
         // diagram's own generous grid width stretches strings apart further than
-        // FrettedInstrumentDiagram's neck/scale-box views. Centered in the *whole* box width, not
+        // FrettedInstrumentDiagram's neck/scale-box views. Centred in the *whole* box width, not
         // just the leftPad-to-(width-rightPad) span — which would skew the grid toward whichever
         // side has the smaller of the two (asymmetric, label-reserving) pads — floored at leftPad
         // and ceilinged at (width - rightPad - stringsContentWidth) so it never creeps into either
@@ -218,7 +218,7 @@ fun ChordShapeDiagram(
             }
         }
 
-        // Press feedback, drawn last so it overrides the resting color at that string while
+        // Press feedback, drawn last so it overrides the resting colour at that string while
         // held. Muted strings aren't tappable, so they get none.
         pressedStringIndex?.let { s ->
             val fret = shape.marks[s].fret ?: return@let

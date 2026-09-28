@@ -2,7 +2,7 @@ package com.rm.scaleinkey.music
 
 // Real, standard open-position chord shapes, keyed by root pitch class. One entry per string in
 // tuning order (low to high); null = muted string. Scoped deliberately to the "vanilla" qualities
-// players actually recognize (major/minor triads, dominant7/major7/minor7) and to the roots that
+// players actually recognise (major/minor triads, dominant7/major7/minor7) and to the roots that
 // have a genuine open-position shape — everything else (other roots, and the rarer diatonic
 // qualities from harmonic/melodic minor etc.) falls back to the algorithmic shape-finder in
 // ChordFingering.kt, which has no such gaps.

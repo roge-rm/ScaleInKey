@@ -26,7 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
-/** Compact "select box" — a labeled field that expands a [DropdownMenu] of [options] on tap. */
+/** Compact "select box" — a labelled field that expands a [DropdownMenu] of [options] on tap. */
 @Composable
 fun <T> LabeledDropdown(
     label: String,

@@ -62,7 +62,7 @@ fun ChordRow(
         // A fixed card width (not Modifier.weight(1f) on each row) keeps every card the same
         // size whether a row has a full CHORDS_PER_ROW or fewer — 7 chords chunk into 4+3, and
         // weighting the shorter row's cards to fill the same space would make them visibly
-        // larger than the first row's. Centering (rather than trailing Spacers) then closes the
+        // larger than the first row's. Centring (rather than trailing Spacers) then closes the
         // gap on a short last row without resizing anything.
         val cardWidth = (maxWidth - spacing * (CHORDS_PER_ROW - 1)) / CHORDS_PER_ROW
         Column(verticalArrangement = Arrangement.spacedBy(spacing)) {

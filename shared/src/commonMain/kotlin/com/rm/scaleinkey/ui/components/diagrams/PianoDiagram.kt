@@ -49,7 +49,7 @@ fun PianoDiagram(
     val pressedColor = MaterialTheme.colorScheme.primary
 
     // Which key (by its unique keyIndex, not pitch class — the same pitch class can appear in
-    // both octaves) is currently held down, so it can flash a distinct color for feedback even
+    // both octaves) is currently held down, so it can flash a distinct colour for feedback even
     // when it isn't part of the current highlight (previously an unhighlighted key tap drew
     // nothing at all, giving no visual confirmation of where the tap landed).
     var pressedKeyIndex by remember { mutableStateOf<Int?>(null) }

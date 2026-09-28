@@ -25,7 +25,7 @@ internal const val CHART_MODE_SCALE = 1.25f
  * strings the current instrument has, so there's no leftover height there — but [ChordShapeDiagram]
  * can't shrink its *width* the same way (it's always the full available screen width, like every
  * other diagram in this app), so a chord using fewer strings than Guitar's 6 leaves blank margin on
- * either side of its (centered) string columns instead.
+ * either side of its (centred) string columns instead.
  */
 internal const val STRING_SPACING_FRACTION = 0.0897f
 

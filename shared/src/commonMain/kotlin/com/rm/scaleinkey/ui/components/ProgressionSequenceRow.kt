@@ -107,7 +107,7 @@ fun ProgressionSequenceRow(
 
     var draggingId by remember { mutableStateOf<Long?>(null) }
     var dragOffsetX by remember { mutableFloatStateOf(0f) }
-    // Each chip's last-measured horizontal center, keyed by its stable id (not its index, which
+    // Each chip's last-measured horizontal centre, keyed by its stable id (not its index, which
     // changes on every reorder) — the drag math below finds the nearest chip to swap with by
     // comparing these positions.
     val chipCenters = remember { mutableStateMapOf<Long, Float>() }

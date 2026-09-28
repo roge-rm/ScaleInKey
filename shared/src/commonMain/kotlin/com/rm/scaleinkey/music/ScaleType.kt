@@ -23,9 +23,9 @@ enum class ScaleType(
      */
     val letterOffsets: List<Int>? = null,
     /**
-     * Diatonic 7th-chord harmonization (stacking thirds) only produces chord qualities from a
+     * Diatonic 7th-chord harmonisation (stacking thirds) only produces chord qualities from a
      * small, named set (maj7, m7, dominant7, m7♭5, °7, m(maj7), maj7♯5) for genuinely diatonic
-     * 7-note scales. Several of the scales below aren't harmonized that way in practice and
+     * 7-note scales. Several of the scales below aren't harmonised that way in practice and
      * mechanically stacking thirds on them yields chords with no standard name (e.g. a triad
      * with a major third and a ♭5, or a "third" only 2 semitones wide) — verified by brute-force
      * computation across all 12 roots before adding these, not guessed. Those scales set this

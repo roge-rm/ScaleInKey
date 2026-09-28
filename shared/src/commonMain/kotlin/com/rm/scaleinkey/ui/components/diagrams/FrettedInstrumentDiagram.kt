@@ -124,7 +124,7 @@ fun FrettedInstrumentDiagram(
         // A shared absolute fret width (see FRET_SPACING_FRACTION), not (width-leftPad-rightPad)/
         // numFrets — otherwise the windowed scale-box (only 4 frets) spreads those 4 frets across
         // the full available width, spacing them much further apart than the full 12-fret neck
-        // view. When numFrets < the neck view's 12, the drawn grid is centered in the *whole* box
+        // view. When numFrets < the neck view's 12, the drawn grid is centred in the *whole* box
         // width instead — not just the leftPad-to-(width-rightPad) span, which would skew the grid
         // toward whichever side has the smaller of the two (asymmetric, label-reserving) pads —
         // floored at leftPad and ceilinged at (width - rightPad - gridContentWidth) so it never

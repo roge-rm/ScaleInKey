@@ -26,11 +26,11 @@ import androidx.compose.ui.unit.sp
 
 /**
  * The gradient title header, shared by both top-level screens. Runs edge-to-edge behind the
- * status bar (see enableEdgeToEdge in MainActivity) rather than sitting below a system-colored
+ * status bar (see enableEdgeToEdge in MainActivity) rather than sitting below a system-coloured
  * bar — the background/clip apply before [Modifier.windowInsetsPadding], so only the content
  * gets pushed down. [switchIcon] is a single small glyph (kept to 1-2 characters — this is a
  * compact icon button, not a label) shown in a circular button anchored to the trailing edge; the
- * title stays visually centered via the outer [Box]'s own [Alignment.Center], since only the
+ * title stays visually centred via the outer [Box]'s own [Alignment.Center], since only the
  * toggle sets its own [Modifier.align].
  */
 @Composable
@@ -68,7 +68,7 @@ fun HeroBand(
                 .size(32.dp)
                 .semantics { contentDescription = switchContentDescription },
             shape = CircleShape,
-            // A translucent tint of onPrimary, not the primaryContainer color the other small
+            // A translucent tint of onPrimary, not the primaryContainer colour the other small
             // circular icon-buttons in this app use — this one sits directly on the hero band's
             // own gradient rather than a neutral surface, so it needs to read against either end
             // of the primary->tertiary gradient rather than against the plain background.

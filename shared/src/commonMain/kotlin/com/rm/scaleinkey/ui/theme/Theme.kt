@@ -59,7 +59,7 @@ private val LightColorScheme = lightColorScheme(
 fun ScaleInKeyTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     // Deliberately off by default: a crafted brand palette shouldn't be overridden
-    // by wallpaper-derived Material You colors.
+    // by wallpaper-derived Material You colours.
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {

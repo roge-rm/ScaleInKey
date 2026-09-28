@@ -16,7 +16,7 @@ data class StringMark(
  * One mark per string, ordered by stringIndex (== the tuning's string order). [startFret] is the
  * fret immediately below the diagram's fretted range: 0 means an open-position shape (frets 0-4,
  * open strings allowed); any other value S means a movable shape spanning frets S+1..S+4 with no
- * open strings, conventionally labeled "(S+1)fr" alongside the diagram.
+ * open strings, conventionally labelled "(S+1)fr" alongside the diagram.
  */
 data class ChordShape(val marks: List<StringMark>, val startFret: Int)
 
@@ -63,7 +63,7 @@ private fun assignFingers(frettedByString: List<Pair<Int, Int>>): Map<Int, Int> 
 /**
  * Finds a playable near-the-nut voicing of [chordTones] on [tuning], picking one fret (or mute)
  * per string. Tries a real, standard shape first (see KnownChordShapes.kt — the common ~dozen
- * open chords players actually recognize, e.g. the classic open C = x32010); only chords with no
+ * open chords players actually recognise, e.g. the classic open C = x32010); only chords with no
  * known shape (an unlisted root, or a rarer quality like an augmented-major7 from harmonic minor)
  * fall through to the algorithmic search below, which has no such gaps but doesn't always land on
  * a "textbook" fingering. Coverage requirements are relaxed and the search window moves up the
@@ -167,7 +167,7 @@ private fun bestShapeInWindow(
     )
 }
 
-/** Null if this combination fails a hard filter; otherwise a score to maximize. */
+/** Null if this combination fails a hard filter; otherwise a score to maximise. */
 private fun scoreCombo(
     tuning: StringInstrumentTuning,
     combo: List<Int?>,
