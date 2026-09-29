@@ -5,6 +5,8 @@ ScaleInKey is an Android app that shows you the notes and chords in a scale. Pic
 There are 33 scales to choose from, from the regular modes to blues, jazz and some of the more exotic ones. Tap any note or chord and you'll hear it played through a real soundfont, and you can load your own if you don't like the default one. There's also a simple chord progression sequencer, so you can string some chords together and hear how they sound, with looping and adjustable BPM.
 
 Requires Android 8.0 or higher.
+Disclaimer: I am not a great programmer and this was made using Claude Opus 5.0/5.5
+
 
 Enjoy!
 Dan
