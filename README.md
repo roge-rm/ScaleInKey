@@ -6,8 +6,6 @@ There are 33 scales to choose from, from the regular modes to blues, jazz and so
 
 Requires Android 8.0 or higher.
 
-Disclaimer: I am not a great programmer and this was made using Claude Opus 5.0/5.5
-
 Enjoy!
 Dan
 
@@ -99,3 +97,5 @@ emulator.
 ## License
 
 MIT, see [LICENSE](LICENSE).
+
+Disclaimer: I am not a great programmer and this was made using Claude Opus 5.0/5.5
